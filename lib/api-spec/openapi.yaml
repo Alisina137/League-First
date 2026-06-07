@@ -1,22 +1,36 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Football Hub API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: leagues
+    description: League operations
+  - name: matches
+    description: Match operations
+  - name: standings
+    description: Standings operations
+  - name: players
+    description: Player operations
+  - name: teams
+    description: Team operations
+  - name: transfers
+    description: Transfer operations
+  - name: news
+    description: News operations
+  - name: preferences
+    description: User preferences
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +38,624 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /leagues:
+    get:
+      operationId: listLeagues
+      tags: [leagues]
+      summary: List all leagues
+      responses:
+        "200":
+          description: List of leagues
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/League"
+
+  /leagues/{slug}:
+    get:
+      operationId: getLeague
+      tags: [leagues]
+      summary: Get league by slug
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: League details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/League"
+        "404":
+          description: Not found
+
+  /leagues/{slug}/summary:
+    get:
+      operationId: getLeagueSummary
+      tags: [leagues]
+      summary: Get full summary for a league hub (live matches, fixtures, standings, scorers, etc.)
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: League hub summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeagueSummary"
+
+  /matches:
+    get:
+      operationId: listMatches
+      tags: [matches]
+      summary: List matches (global or filtered by league)
+      parameters:
+        - name: leagueSlug
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [live, upcoming, finished]
+      responses:
+        "200":
+          description: List of matches
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Match"
+
+  /matches/{id}:
+    get:
+      operationId: getMatch
+      tags: [matches]
+      summary: Get match by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Match detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Match"
+
+  /standings:
+    get:
+      operationId: listStandings
+      tags: [standings]
+      summary: Get standings for a league
+      parameters:
+        - name: leagueSlug
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Standings table
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StandingRow"
+
+  /players:
+    get:
+      operationId: listPlayers
+      tags: [players]
+      summary: List players, optionally filtered by league
+      parameters:
+        - name: leagueSlug
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: stat
+          in: query
+          schema:
+            type: string
+            enum: [goals, assists, cleanSheets]
+      responses:
+        "200":
+          description: List of players
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Player"
+
+  /players/{id}:
+    get:
+      operationId: getPlayer
+      tags: [players]
+      summary: Get player by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Player detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Player"
+
+  /teams:
+    get:
+      operationId: listTeams
+      tags: [teams]
+      summary: List teams, optionally filtered by league
+      parameters:
+        - name: leagueSlug
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of teams
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Team"
+
+  /transfers:
+    get:
+      operationId: listTransfers
+      tags: [transfers]
+      summary: List transfers, optionally filtered by league
+      parameters:
+        - name: leagueSlug
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of transfers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Transfer"
+
+  /news:
+    get:
+      operationId: listNews
+      tags: [news]
+      summary: List news articles, optionally filtered by league
+      parameters:
+        - name: leagueSlug
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of news articles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NewsArticle"
+
+  /homepage:
+    get:
+      operationId: getHomepage
+      tags: [leagues]
+      summary: Get global homepage feed (live matches, top news, standings snapshots)
+      responses:
+        "200":
+          description: Homepage data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HomepageFeed"
+
+  /preferences:
+    get:
+      operationId: getPreferences
+      tags: [preferences]
+      summary: Get user preferences
+      responses:
+        "200":
+          description: User preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPreferences"
+    put:
+      operationId: updatePreferences
+      tags: [preferences]
+      summary: Update user preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserPreferencesInput"
+      responses:
+        "200":
+          description: Updated preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPreferences"
+
 components:
   schemas:
     HealthStatus:
       type: object
+      required: [status]
       properties:
         status:
           type: string
-      required:
-        - status
 
+    League:
+      type: object
+      required: [id, name, slug, country, logoUrl, currentSeason, currentMatchweek]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        slug:
+          type: string
+        country:
+          type: string
+        logoUrl:
+          type: string
+        currentSeason:
+          type: string
+        currentMatchweek:
+          type: integer
+
+    LeagueSummary:
+      type: object
+      required: [league, liveMatches, upcomingMatches, recentResults, standings, topScorers, topAssists, cleanSheets, transfers, news, injuries]
+      properties:
+        league:
+          $ref: "#/components/schemas/League"
+        liveMatches:
+          type: array
+          items:
+            $ref: "#/components/schemas/Match"
+        upcomingMatches:
+          type: array
+          items:
+            $ref: "#/components/schemas/Match"
+        recentResults:
+          type: array
+          items:
+            $ref: "#/components/schemas/Match"
+        standings:
+          type: array
+          items:
+            $ref: "#/components/schemas/StandingRow"
+        topScorers:
+          type: array
+          items:
+            $ref: "#/components/schemas/Player"
+        topAssists:
+          type: array
+          items:
+            $ref: "#/components/schemas/Player"
+        cleanSheets:
+          type: array
+          items:
+            $ref: "#/components/schemas/Player"
+        transfers:
+          type: array
+          items:
+            $ref: "#/components/schemas/Transfer"
+        news:
+          type: array
+          items:
+            $ref: "#/components/schemas/NewsArticle"
+        injuries:
+          type: array
+          items:
+            $ref: "#/components/schemas/Injury"
+
+    HomepageFeed:
+      type: object
+      required: [liveMatches, upcomingMatches, featuredLeagues, topNews, transfers]
+      properties:
+        liveMatches:
+          type: array
+          items:
+            $ref: "#/components/schemas/Match"
+        upcomingMatches:
+          type: array
+          items:
+            $ref: "#/components/schemas/Match"
+        featuredLeagues:
+          type: array
+          items:
+            $ref: "#/components/schemas/League"
+        topNews:
+          type: array
+          items:
+            $ref: "#/components/schemas/NewsArticle"
+        transfers:
+          type: array
+          items:
+            $ref: "#/components/schemas/Transfer"
+
+    Match:
+      type: object
+      required: [id, homeTeam, awayTeam, leagueId, leagueName, leagueSlug, leagueLogo, status, matchDate, matchweek]
+      properties:
+        id:
+          type: integer
+        homeTeam:
+          $ref: "#/components/schemas/TeamRef"
+        awayTeam:
+          $ref: "#/components/schemas/TeamRef"
+        homeScore:
+          type: ["integer", "null"]
+        awayScore:
+          type: ["integer", "null"]
+        leagueId:
+          type: integer
+        leagueName:
+          type: string
+        leagueSlug:
+          type: string
+        leagueLogo:
+          type: string
+        status:
+          type: string
+          enum: [live, upcoming, finished]
+        minute:
+          type: ["integer", "null"]
+        matchDate:
+          type: string
+        matchweek:
+          type: integer
+        venue:
+          type: ["string", "null"]
+
+    TeamRef:
+      type: object
+      required: [id, name, logoUrl]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        logoUrl:
+          type: string
+
+    StandingRow:
+      type: object
+      required: [position, team, played, won, drawn, lost, goalsFor, goalsAgainst, goalDifference, points, form, leagueSlug]
+      properties:
+        position:
+          type: integer
+        team:
+          $ref: "#/components/schemas/TeamRef"
+        played:
+          type: integer
+        won:
+          type: integer
+        drawn:
+          type: integer
+        lost:
+          type: integer
+        goalsFor:
+          type: integer
+        goalsAgainst:
+          type: integer
+        goalDifference:
+          type: integer
+        points:
+          type: integer
+        form:
+          type: string
+        leagueSlug:
+          type: string
+
+    Player:
+      type: object
+      required: [id, name, position, nationality, teamId, teamName, teamLogo, leagueSlug, leagueName, goals, assists, cleanSheets, appearances, photoUrl]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        position:
+          type: string
+        nationality:
+          type: string
+        age:
+          type: ["integer", "null"]
+        teamId:
+          type: integer
+        teamName:
+          type: string
+        teamLogo:
+          type: string
+        leagueSlug:
+          type: string
+        leagueName:
+          type: string
+        goals:
+          type: integer
+        assists:
+          type: integer
+        cleanSheets:
+          type: integer
+        appearances:
+          type: integer
+        photoUrl:
+          type: string
+        injured:
+          type: boolean
+
+    Team:
+      type: object
+      required: [id, name, logoUrl, leagueSlug, leagueName, country, founded]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        logoUrl:
+          type: string
+        leagueSlug:
+          type: string
+        leagueName:
+          type: string
+        country:
+          type: string
+        founded:
+          type: ["integer", "null"]
+        stadium:
+          type: ["string", "null"]
+        manager:
+          type: ["string", "null"]
+
+    Transfer:
+      type: object
+      required: [id, playerName, playerPhoto, fromTeam, toTeam, fee, transferDate, leagueSlug, leagueName, type]
+      properties:
+        id:
+          type: integer
+        playerName:
+          type: string
+        playerPhoto:
+          type: string
+        fromTeam:
+          type: string
+        fromTeamLogo:
+          type: string
+        toTeam:
+          type: string
+        toTeamLogo:
+          type: string
+        fee:
+          type: string
+        transferDate:
+          type: string
+        leagueSlug:
+          type: string
+        leagueName:
+          type: string
+        type:
+          type: string
+          enum: [permanent, loan, free]
+
+    NewsArticle:
+      type: object
+      required: [id, title, excerpt, imageUrl, publishedAt, source, leagueSlug, leagueName, category]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        excerpt:
+          type: string
+        imageUrl:
+          type: string
+        publishedAt:
+          type: string
+        source:
+          type: string
+        leagueSlug:
+          type: string
+        leagueName:
+          type: string
+        category:
+          type: string
+        url:
+          type: ["string", "null"]
+
+    Injury:
+      type: object
+      required: [id, playerName, playerPhoto, teamName, teamLogo, leagueSlug, injury, expectedReturn, status]
+      properties:
+        id:
+          type: integer
+        playerName:
+          type: string
+        playerPhoto:
+          type: string
+        teamName:
+          type: string
+        teamLogo:
+          type: string
+        leagueSlug:
+          type: string
+        injury:
+          type: string
+        expectedReturn:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [injured, suspended, doubt]
+
+    UserPreferences:
+      type: object
+      required: [favoriteLeagueSlugs, favoriteTeamIds, favoritePlayerIds]
+      properties:
+        favoriteLeagueSlugs:
+          type: array
+          items:
+            type: string
+        favoriteTeamIds:
+          type: array
+          items:
+            type: integer
+        favoritePlayerIds:
+          type: array
+          items:
+            type: integer
+
+    UserPreferencesInput:
+      type: object
+      properties:
+        favoriteLeagueSlugs:
+          type: array
+          items:
+            type: string
+        favoriteTeamIds:
+          type: array
+          items:
+            type: integer
+        favoritePlayerIds:
+          type: array
+          items:
+            type: integer

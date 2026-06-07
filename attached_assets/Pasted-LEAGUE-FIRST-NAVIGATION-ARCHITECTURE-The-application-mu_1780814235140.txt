@@ -1,0 +1,200 @@
+LEAGUE-FIRST NAVIGATION ARCHITECTURE
+
+The application must be built around league-centric navigation.
+
+Instead of showing only a generic "Leagues" page, create dedicated league sections in the navigation.
+
+POPULAR LEAGUES
+
+Display these leagues directly in navigation:
+
+- Premier League
+- La Liga
+- Serie A
+- Bundesliga
+- Ligue 1
+- UEFA Champions League
+- UEFA Europa League
+- Saudi Pro League
+- MLS
+- World Cup
+- International Football
+
+DESKTOP SIDEBAR
+
+Home
+Matches
+
+POPULAR LEAGUES
+Premier League
+La Liga
+Serie A
+Bundesliga
+Ligue 1
+Champions League
+Europa League
+Saudi Pro League
+MLS
+World Cup
+
+Teams
+Players
+Transfers
+News
+Bookmarks
+Fantasy
+Profile
+Settings
+
+MOBILE NAVIGATION
+
+Bottom Navigation
+
+Home
+Matches
+Leagues
+News
+Profile
+
+Inside Leagues tab show all popular leagues.
+
+LEAGUE HUB SYSTEM
+
+Every league must have its own hub page.
+
+Example:
+
+Premier League Hub
+La Liga Hub
+Serie A Hub
+
+When user enters a league hub, all content must be filtered ONLY to that league.
+
+Example:
+
+Premier League Hub
+
+Show:
+
+- Premier League live matches
+- Premier League fixtures
+- Premier League results
+- Premier League standings
+- Premier League top scorers
+- Premier League top assists
+- Premier League injuries
+- Premier League transfers
+- Premier League news
+- Premier League player rankings
+- Premier League team rankings
+- Premier League statistics
+
+NO content from other leagues should appear.
+
+Example:
+
+User enters La Liga Hub.
+
+Everything changes to:
+
+- La Liga matches
+- La Liga standings
+- La Liga news
+- La Liga transfers
+- La Liga players
+
+Do not display Premier League, Serie A, Bundesliga or other leagues inside La Liga Hub.
+
+LEAGUE HOMEPAGE LAYOUT
+
+Each league hub should have same structure as the main homepage.
+
+Hero Section
+
+- League logo
+- League name
+- Current season
+- Current matchweek
+
+Sections
+
+1. Live Matches
+2. Upcoming Fixtures
+3. Recent Results
+4. League Standings
+5. Top Scorers
+6. Top Assists
+7. Clean Sheets
+8. Transfer Rumors
+9. Latest League News
+10. Trending Players
+11. Injuries & Suspensions
+12. Team Rankings
+
+LEAGUE FILTER SYSTEM
+
+Create a global league filter.
+
+When a user selects a league:
+
+- News updates automatically
+- Fixtures update automatically
+- Transfers update automatically
+- Standings update automatically
+- Statistics update automatically
+
+Persist selected league in user preferences.
+
+PERSONALIZED LEAGUE FEED
+
+Allow users to favorite leagues.
+
+Users can select:
+
+Favorite League
+Favorite Team
+Favorite Players
+
+Homepage prioritizes those leagues first.
+
+EXAMPLE
+
+If user chooses La Liga as favorite:
+
+Homepage shows:
+
+- La Liga matches first
+- La Liga news first
+- La Liga transfers first
+- La Liga standings first
+
+Then other leagues below.
+
+SEARCH BEHAVIOR
+
+League search should search only inside the selected league first.
+
+Example:
+
+User is inside Premier League Hub.
+
+Searching "Haaland" shows:
+
+- Premier League related data first.
+
+LEAGUE URL STRUCTURE
+
+/league/premier-league
+/league/la-liga
+/league/serie-a
+/league/bundesliga
+/league/ligue-1
+/league/champions-league
+
+Each league hub must be independently accessible and SEO optimized.
+
+IMPORTANT
+
+Think of every league page as a mini OneFootball app dedicated to that league.
+The homepage is global football.
+League pages are completely league-focused.
