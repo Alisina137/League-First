@@ -173,76 +173,137 @@ export default function LeagueHub() {
           <section>
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-xl font-bold flex items-center gap-2"><Trophy className="w-5 h-5 text-primary" />Standings</h2>
-              <Link href={`/standings`} className="text-sm text-primary hover:underline font-medium">Full Table</Link>
+              <Link href={`/standings/${safeSlug}`} className="text-sm text-primary hover:underline font-medium">Full Table</Link>
             </div>
             {standings.length === 0 ? (
               <EmptyState message="Standings not available for this competition" />
-            ) : (
-              <div className="bg-card border border-border rounded-xl overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-border text-muted-foreground text-xs uppercase tracking-wider">
-                        <th className="text-left px-4 py-3 w-8">#</th>
-                        <th className="text-left px-4 py-3">Club</th>
-                        <th className="text-center px-3 py-3 hidden sm:table-cell">P</th>
-                        <th className="text-center px-3 py-3 hidden md:table-cell">W</th>
-                        <th className="text-center px-3 py-3 hidden md:table-cell">D</th>
-                        <th className="text-center px-3 py-3 hidden md:table-cell">L</th>
-                        <th className="text-center px-3 py-3 hidden sm:table-cell">GD</th>
-                        <th className="text-center px-3 py-3 font-bold text-foreground">Pts</th>
-                        <th className="text-center px-3 py-3 hidden xl:table-cell">Form</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {standings.map((row) => {
-                        const isTop4 = row.position <= 4;
-                        const isBottom3 = standings.length - row.position < 3;
-                        return (
-                          <tr
-                            key={row.team.id}
-                            className={`transition-colors hover:bg-secondary/50 ${
-                              isTop4 ? "border-l-2 border-l-primary" : isBottom3 ? "border-l-2 border-l-destructive/50" : ""
-                            }`}
-                          >
-                            <td className="px-4 py-2.5 text-muted-foreground font-mono text-xs">{row.position}</td>
-                            <td className="px-4 py-2.5">
-                              <div className="flex items-center gap-2">
-                                <img src={row.team.crest} alt={row.team.name} className="w-5 h-5 object-contain flex-shrink-0" data-no-transition onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
-                                <span className="font-semibold text-sm truncate max-w-[140px]" title={row.team.name}>{row.team.name}</span>
-                              </div>
-                            </td>
-                            <td className="text-center px-3 py-2.5 text-muted-foreground hidden sm:table-cell">{row.played}</td>
-                            <td className="text-center px-3 py-2.5 text-muted-foreground hidden md:table-cell">{row.won}</td>
-                            <td className="text-center px-3 py-2.5 text-muted-foreground hidden md:table-cell">{row.drawn}</td>
-                            <td className="text-center px-3 py-2.5 text-muted-foreground hidden md:table-cell">{row.lost}</td>
-                            <td className={`text-center px-3 py-2.5 font-semibold hidden sm:table-cell ${row.goalDifference > 0 ? "text-primary" : row.goalDifference < 0 ? "text-destructive" : "text-muted-foreground"}`}>
-                              {row.goalDifference > 0 ? `+${row.goalDifference}` : row.goalDifference}
-                            </td>
-                            <td className="text-center px-3 py-2.5 font-bold">{row.points}</td>
-                            <td className="text-center px-3 py-2.5 hidden xl:table-cell">
-                              {row.form ? (
-                                <div className="flex items-center justify-center gap-0.5">
-                                  {row.form.split(",").filter(Boolean).slice(-5).map((r, i) => (
-                                    <span key={i} className={`w-4 h-4 rounded-sm text-[10px] font-bold text-white flex items-center justify-center ${formColors[r.trim()] ?? "bg-muted"}`}>
-                                      {r.trim().charAt(0)}
-                                    </span>
-                                  ))}
+            ) : (() => {
+              const isGroupStage = standings.some(r => r.group != null);
+              if (isGroupStage) {
+                const groupMap = new Map<string, typeof standings>();
+                for (const row of standings) {
+                  const key = row.group ?? "Group";
+                  if (!groupMap.has(key)) groupMap.set(key, []);
+                  groupMap.get(key)!.push(row);
+                }
+                const groupEntries = Array.from(groupMap.entries());
+                const previewGroups = groupEntries.slice(0, 4);
+                return (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {previewGroups.map(([groupName, rows]) => (
+                        <div key={groupName} className="bg-card border border-border rounded-xl overflow-hidden">
+                          <div className="px-3 py-2 border-b border-border bg-secondary/30">
+                            <span className="text-xs font-bold uppercase tracking-wider">{groupName}</span>
+                          </div>
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="text-muted-foreground text-xs border-b border-border">
+                                <th className="text-left px-3 py-1.5 w-6">#</th>
+                                <th className="text-left px-3 py-1.5">Club</th>
+                                <th className="text-center px-2 py-1.5">P</th>
+                                <th className="text-center px-2 py-1.5">GD</th>
+                                <th className="text-center px-2 py-1.5 font-bold text-foreground">Pts</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border">
+                              {rows.map((row, idx) => (
+                                <tr key={row.team.id} className={`hover:bg-secondary/40 ${idx < 2 ? "border-l-2 border-l-primary" : ""}`}>
+                                  <td className="px-3 py-2 text-muted-foreground font-mono text-xs">{row.position}</td>
+                                  <td className="px-3 py-2">
+                                    <div className="flex items-center gap-1.5">
+                                      <img src={row.team.crest} alt={row.team.name} className="w-4 h-4 object-contain flex-shrink-0" data-no-transition onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
+                                      <span className="font-medium text-xs truncate max-w-[90px]">{row.team.shortName}</span>
+                                    </div>
+                                  </td>
+                                  <td className="text-center px-2 py-2 text-muted-foreground text-xs">{row.played}</td>
+                                  <td className={`text-center px-2 py-2 text-xs font-semibold ${row.goalDifference > 0 ? "text-primary" : row.goalDifference < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                                    {row.goalDifference > 0 ? `+${row.goalDifference}` : row.goalDifference}
+                                  </td>
+                                  <td className="text-center px-2 py-2 font-bold text-xs">{row.points}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ))}
+                    </div>
+                    {groupEntries.length > 4 && (
+                      <p className="text-xs text-muted-foreground text-center">
+                        Showing {previewGroups.length} of {groupEntries.length} groups —{" "}
+                        <a href={`/standings/${safeSlug}`} className="text-primary hover:underline font-semibold">see all groups</a>
+                      </p>
+                    )}
+                  </div>
+                );
+              }
+              return (
+                <div className="bg-card border border-border rounded-xl overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-border text-muted-foreground text-xs uppercase tracking-wider">
+                          <th className="text-left px-4 py-3 w-8">#</th>
+                          <th className="text-left px-4 py-3">Club</th>
+                          <th className="text-center px-3 py-3 hidden sm:table-cell">P</th>
+                          <th className="text-center px-3 py-3 hidden md:table-cell">W</th>
+                          <th className="text-center px-3 py-3 hidden md:table-cell">D</th>
+                          <th className="text-center px-3 py-3 hidden md:table-cell">L</th>
+                          <th className="text-center px-3 py-3 hidden sm:table-cell">GD</th>
+                          <th className="text-center px-3 py-3 font-bold text-foreground">Pts</th>
+                          <th className="text-center px-3 py-3 hidden xl:table-cell">Form</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {standings.map((row) => {
+                          const isTop4 = row.position <= 4;
+                          const isBottom3 = standings.length - row.position < 3;
+                          return (
+                            <tr
+                              key={row.team.id}
+                              className={`transition-colors hover:bg-secondary/50 ${
+                                isTop4 ? "border-l-2 border-l-primary" : isBottom3 ? "border-l-2 border-l-destructive/50" : ""
+                              }`}
+                            >
+                              <td className="px-4 py-2.5 text-muted-foreground font-mono text-xs">{row.position}</td>
+                              <td className="px-4 py-2.5">
+                                <div className="flex items-center gap-2">
+                                  <img src={row.team.crest} alt={row.team.name} className="w-5 h-5 object-contain flex-shrink-0" data-no-transition onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
+                                  <span className="font-semibold text-sm truncate max-w-[140px]" title={row.team.name}>{row.team.name}</span>
                                 </div>
-                              ) : <span className="text-muted-foreground text-xs">—</span>}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                              </td>
+                              <td className="text-center px-3 py-2.5 text-muted-foreground hidden sm:table-cell">{row.played}</td>
+                              <td className="text-center px-3 py-2.5 text-muted-foreground hidden md:table-cell">{row.won}</td>
+                              <td className="text-center px-3 py-2.5 text-muted-foreground hidden md:table-cell">{row.drawn}</td>
+                              <td className="text-center px-3 py-2.5 text-muted-foreground hidden md:table-cell">{row.lost}</td>
+                              <td className={`text-center px-3 py-2.5 font-semibold hidden sm:table-cell ${row.goalDifference > 0 ? "text-primary" : row.goalDifference < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                                {row.goalDifference > 0 ? `+${row.goalDifference}` : row.goalDifference}
+                              </td>
+                              <td className="text-center px-3 py-2.5 font-bold">{row.points}</td>
+                              <td className="text-center px-3 py-2.5 hidden xl:table-cell">
+                                {row.form ? (
+                                  <div className="flex items-center justify-center gap-0.5">
+                                    {row.form.split(",").filter(Boolean).slice(-5).map((r, i) => (
+                                      <span key={i} className={`w-4 h-4 rounded-sm text-[10px] font-bold text-white flex items-center justify-center ${formColors[r.trim()] ?? "bg-muted"}`}>
+                                        {r.trim().charAt(0)}
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : <span className="text-muted-foreground text-xs">—</span>}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="px-4 py-2 border-t border-border text-xs text-muted-foreground flex gap-4">
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 bg-primary rounded-full inline-block" /> Champions League</span>
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 bg-destructive/50 rounded-full inline-block" /> Relegation</span>
+                  </div>
                 </div>
-                <div className="px-4 py-2 border-t border-border text-xs text-muted-foreground flex gap-4">
-                  <span className="flex items-center gap-1"><span className="w-2 h-2 bg-primary rounded-full inline-block" /> Champions League</span>
-                  <span className="flex items-center gap-1"><span className="w-2 h-2 bg-destructive/50 rounded-full inline-block" /> Relegation</span>
-                </div>
-              </div>
-            )}
+              );
+            })()}
           </section>
 
           {/* Top Scorers */}

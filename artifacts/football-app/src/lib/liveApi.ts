@@ -11,6 +11,7 @@ export async function apiFetch<T>(path: string): Promise<T> {
 
 export interface LiveStanding {
   position: number;
+  group?: string;
   team: { id: number; name: string; shortName: string; crest: string };
   played: number;
   won: number;

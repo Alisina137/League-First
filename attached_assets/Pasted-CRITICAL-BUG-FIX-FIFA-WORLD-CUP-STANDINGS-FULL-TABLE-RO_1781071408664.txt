@@ -1,0 +1,202 @@
+CRITICAL BUG FIX: FIFA WORLD CUP STANDINGS & FULL TABLE ROUTING
+
+There is a serious navigation and data-mapping bug in the Competitions section.
+
+CURRENT ISSUE
+
+1. When I click "FIFA World Cup" in the sidebar:
+
+   * The standings widget only shows a single group.
+   * It does not show all World Cup groups.
+
+2. When I click "Full Standings" from the World Cup page:
+
+   * It incorrectly opens the Premier League full standings.
+   * It should open World Cup standings instead.
+
+This indicates that the routing, competition ID mapping, or API request logic is incorrect.
+
+TASK
+
+Perform a complete audit of the World Cup implementation.
+
+1. FIX FULL STANDINGS ROUTING
+
+Current behavior:
+World Cup → Full Standings → Premier League Table
+
+Required behavior:
+World Cup → Full Standings → World Cup Standings
+
+The selected competition must always be preserved.
+
+2. PRESERVE COMPETITION CONTEXT
+
+When navigating:
+
+Competition Selected
+→ Standings
+→ Full Standings
+→ Teams
+→ Matches
+→ Players
+
+The competition ID must remain active.
+
+Example:
+
+Selected Competition:
+World Cup
+
+Full Standings:
+World Cup
+
+NOT:
+Premier League
+
+3. VERIFY ROUTING
+
+Check all routes such as:
+
+/standings
+/full-standings
+/league/:id
+/competition/:id
+
+Ensure competition ID is passed correctly.
+
+Bad:
+
+navigate("/standings")
+
+Good:
+
+navigate(`/standings/${competitionId}`)
+
+4. FIX API REQUESTS
+
+Verify that World Cup standings use the World Cup competition ID.
+
+Current suspicion:
+The API request falls back to Premier League when World Cup data is requested.
+
+Prevent this behavior completely.
+
+5. WORLD CUP GROUPS
+
+The World Cup page should display ALL groups.
+
+Example:
+
+Group A
+Group B
+Group C
+Group D
+Group E
+Group F
+Group G
+Group H
+
+Each group should show:
+
+* Position
+* Team
+* Played
+* Won
+* Drawn
+* Lost
+* Goal Difference
+* Points
+
+Do not display only one group.
+
+6. COMPETITION-SPECIFIC TABLES
+
+Every competition should load its own table.
+
+Premier League:
+Premier League standings
+
+La Liga:
+La Liga standings
+
+Serie A:
+Serie A standings
+
+Bundesliga:
+Bundesliga standings
+
+World Cup:
+World Cup group tables
+
+Never reuse another competition's standings.
+
+7. DEBUG LOGGING
+
+Add logs:
+
+Selected Competition:
+Competition ID:
+Standings Endpoint:
+Returned Competition:
+
+Example:
+
+Selected: FIFA World Cup
+Competition ID: XXXX
+API Competition Returned: FIFA World Cup
+
+If mismatch occurs:
+
+Console Error:
+"Competition mismatch detected"
+
+8. REMOVE FALLBACKS
+
+Search for code similar to:
+
+if (!competitionId)
+usePremierLeague()
+
+or
+
+defaultLeague = premierLeague
+
+or
+
+fallbackCompetition = PL
+
+Remove these fallbacks from standings pages.
+
+9. VALIDATION
+
+Before rendering:
+
+Check:
+
+selectedCompetition.id === returnedCompetition.id
+
+If false:
+
+Show error:
+"Incorrect competition data received"
+
+Do not render Premier League data.
+
+10. FINAL VERIFICATION
+
+Verify:
+
+✓ FIFA World Cup shows all groups
+✓ Full Standings opens World Cup standings
+✓ Competition context is preserved
+✓ Correct API competition ID is used
+✓ No Premier League fallback exists
+✓ Each competition displays its own data
+✓ Navigation works correctly across all leagues
+
+IMPORTANT
+
+The selected competition must always remain the source of truth.
+
+At no point should the application silently switch to Premier League data.

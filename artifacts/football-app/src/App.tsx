@@ -33,6 +33,7 @@ function Router() {
         <Route path="/league/:slug" component={LeagueHub} />
         <Route path="/matches" component={Matches} />
         <Route path="/standings" component={Standings} />
+        <Route path="/standings/:slug" component={Standings} />
         <Route path="/transfers" component={Transfers} />
         <Route path="/news" component={News} />
         <Route path="/teams" component={Teams} />

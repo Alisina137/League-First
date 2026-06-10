@@ -60,6 +60,7 @@ export const COMPETITIONS: Record<string, { code: string; name: string; country:
 
 export interface LiveStanding {
   position: number;
+  group?: string;
   team: { id: number; name: string; shortName: string; crest: string };
   played: number;
   won: number;
@@ -140,28 +141,75 @@ export async function getStandings(slug: string): Promise<LiveStanding[]> {
   if (!comp) return [];
   return cached(`standings:${slug}`, TTL.STANDINGS, async () => {
     const data = await apiFetch(`/competitions/${comp.code}/standings`) as {
-      standings: Array<{ type: string; table: Array<{
-        position: number;
-        team: { id: number; name: string; shortName: string; crest: string };
-        playedGames: number; won: number; draw: number; lost: number;
-        goalsFor: number; goalsAgainst: number; goalDifference: number;
-        points: number; form: string | null;
-      }>}>;
+      standings: Array<{
+        type: string;
+        group?: string | null;
+        table: Array<{
+          position: number;
+          team: { id: number; name: string; shortName: string; crest: string };
+          playedGames: number; won: number; draw: number; lost: number;
+          goalsFor: number; goalsAgainst: number; goalDifference: number;
+          points: number; form: string | null;
+        }>;
+      }>;
     };
-    const total = data.standings.find(s => s.type === "TOTAL") ?? data.standings[0];
-    return (total?.table ?? []).map(r => ({
-      position: r.position,
-      team: r.team,
-      played: r.playedGames,
-      won: r.won,
-      drawn: r.draw,
-      lost: r.lost,
-      goalsFor: r.goalsFor,
-      goalsAgainst: r.goalsAgainst,
-      goalDifference: r.goalDifference,
-      points: r.points,
-      form: r.form,
-    }));
+
+    const totalGroups = data.standings.filter(s => s.type === "TOTAL");
+    const sourceGroups = totalGroups.length > 0 ? totalGroups : data.standings;
+    const isMultiGroup = sourceGroups.length > 1;
+
+    logger.info(
+      {
+        competition: comp.name,
+        competitionCode: comp.code,
+        endpoint: `/competitions/${comp.code}/standings`,
+        groupCount: sourceGroups.length,
+        isMultiGroup,
+        returnedCompetition: comp.name,
+      },
+      `Selected: ${comp.name} | Competition ID: ${comp.code} | Standings Endpoint: /competitions/${comp.code}/standings | Returned Competition: ${comp.name}`
+    );
+
+    if (!isMultiGroup) {
+      const single = sourceGroups[0];
+      return (single?.table ?? []).map(r => ({
+        position: r.position,
+        team: r.team,
+        played: r.playedGames,
+        won: r.won,
+        drawn: r.draw,
+        lost: r.lost,
+        goalsFor: r.goalsFor,
+        goalsAgainst: r.goalsAgainst,
+        goalDifference: r.goalDifference,
+        points: r.points,
+        form: r.form,
+      }));
+    }
+
+    const allRows: LiveStanding[] = [];
+    for (const grp of sourceGroups) {
+      const groupLabel = grp.group
+        ? grp.group.replace(/^GROUP_/, "Group ").replace(/_/g, " ")
+        : undefined;
+      for (const r of grp.table) {
+        allRows.push({
+          position: r.position,
+          group: groupLabel,
+          team: r.team,
+          played: r.playedGames,
+          won: r.won,
+          drawn: r.draw,
+          lost: r.lost,
+          goalsFor: r.goalsFor,
+          goalsAgainst: r.goalsAgainst,
+          goalDifference: r.goalDifference,
+          points: r.points,
+          form: r.form,
+        });
+      }
+    }
+    return allRows;
   });
 }
 
