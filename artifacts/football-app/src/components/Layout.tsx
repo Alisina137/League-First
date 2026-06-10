@@ -19,7 +19,7 @@ import { ThemeToggle } from "./ThemeToggle";
 const TOP_TABS = [
   { label: "Standings", href: "/standings", icon: Trophy },
   { label: "Teams",     href: "/teams",     icon: Users },
-  { label: "Players",   href: "/players",   icon: User },
+  { label: "Top Scorers", href: "/players", icon: User },
   { label: "Transfers", href: "/transfers", icon: ArrowRightLeft },
   { label: "News",      href: "/news",      icon: Newspaper },
   { label: "Bookmarks", href: "/bookmarks", icon: Bookmark },
