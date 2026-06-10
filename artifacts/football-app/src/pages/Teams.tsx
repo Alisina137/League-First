@@ -1,16 +1,27 @@
 import { useState } from "react";
-import { useListTeams, useListLeagues } from "@workspace/api-client-react";
-import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { apiFetch, COMPETITIONS, type LiveTeam } from "../lib/liveApi";
+import { CardSkeleton, ErrorState, EmptyState } from "../components/Skeleton";
+
+const REFRESH_MS = 60 * 60 * 1000;
 
 export default function Teams() {
-  const [leagueSlug, setLeagueSlug] = useState<string | undefined>(undefined);
+  const [slug, setSlug] = useState("premier-league");
   const [search, setSearch] = useState("");
 
-  const { data: teams, isLoading } = useListTeams({
-    ...(leagueSlug ? { leagueSlug } : {}),
-    ...(search ? { search } : {}),
+  const { data, isLoading, isError, refetch } = useQuery<LiveTeam[]>({
+    queryKey: ["live-teams", slug],
+    queryFn: () => apiFetch(`/api/live/teams?leagueSlug=${slug}`),
+    staleTime: REFRESH_MS,
+    refetchInterval: REFRESH_MS,
+    retry: 2,
   });
-  const { data: leagues } = useListLeagues();
+
+  const filtered = (data ?? []).filter(t =>
+    !search || t.name.toLowerCase().includes(search.toLowerCase()) || t.shortName.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const comp = COMPETITIONS.find(c => c.slug === slug);
 
   return (
     <div className="space-y-6 pb-10">
@@ -25,65 +36,55 @@ export default function Teams() {
         />
       </div>
 
-      {/* League filter */}
-      {leagues && (
-        <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2">
+        {COMPETITIONS.map((c) => (
           <button
-            onClick={() => setLeagueSlug(undefined)}
-            className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
-              !leagueSlug ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+            key={c.slug}
+            onClick={() => setSlug(c.slug)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+              slug === c.slug ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
             }`}
           >
-            All Leagues
+            <img src={c.emblem} alt="" className="w-3.5 h-3.5 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+            {c.name}
           </button>
-          {leagues.map((league) => (
-            <button
-              key={league.slug}
-              onClick={() => setLeagueSlug(league.slug)}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
-                leagueSlug === league.slug ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-              }`}
-            >
-              <img src={league.logoUrl} alt="" className="w-3.5 h-3.5 object-contain" />
-              {league.name}
-            </button>
-          ))}
-        </div>
-      )}
+        ))}
+      </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center min-h-[40vh]">
-          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
-        </div>
-      ) : !teams || teams.length === 0 ? (
-        <div className="text-center py-20 text-muted-foreground">
-          <p className="text-lg font-semibold mb-2">No teams found</p>
-          <p className="text-sm">Try adjusting your filters.</p>
-        </div>
-      ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-          {teams.map((team) => (
-            <Link key={team.id} href={`/league/${team.leagueSlug}`} className="group">
-              <div className="bg-card border border-border rounded-xl p-4 flex flex-col items-center gap-3 text-center hover:border-primary/50 hover:bg-secondary/30 transition-all">
+          {Array.from({ length: 20 }).map((_, i) => <CardSkeleton key={i} />)}
+        </div>
+      ) : isError ? (
+        <ErrorState message="Teams currently unavailable" onRetry={() => refetch()} />
+      ) : !filtered.length ? (
+        <EmptyState message={search ? "No teams match your search" : "No teams found for this league"} />
+      ) : (
+        <>
+          {comp && (
+            <p className="text-sm text-muted-foreground">{filtered.length} clubs in {comp.name}</p>
+          )}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            {filtered.map((team) => (
+              <div key={team.id} className="group bg-card border border-border rounded-xl p-4 flex flex-col items-center gap-3 text-center hover:border-primary/50 hover:bg-secondary/30 transition-all">
                 <div className="w-14 h-14 flex items-center justify-center">
                   <img
-                    src={team.logoUrl}
+                    src={team.crest}
                     alt={team.name}
                     className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-300"
-                    onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0.3'; }}
+                    onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }}
                   />
                 </div>
-                <div>
+                <div className="w-full">
                   <p className="font-bold text-sm leading-tight group-hover:text-primary transition-colors">{team.name}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{team.leagueName}</p>
+                  {team.venue && <p className="text-xs text-muted-foreground mt-0.5 truncate">{team.venue}</p>}
+                  {team.coach && <p className="text-xs text-muted-foreground mt-0.5 truncate">🧑‍💼 {team.coach}</p>}
+                  {team.founded && <p className="text-xs text-muted-foreground/60 mt-0.5">Est. {team.founded}</p>}
                 </div>
-                {team.stadium && (
-                  <p className="text-xs text-muted-foreground line-clamp-1">{team.stadium}</p>
-                )}
               </div>
-            </Link>
-          ))}
-        </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

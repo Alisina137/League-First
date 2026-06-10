@@ -1,124 +1,188 @@
-import { useGetHomepage } from "@workspace/api-client-react";
-import { MatchCard } from "../components/MatchCard";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { format } from "date-fns";
+import { apiFetch, COMPETITIONS, type LiveMatch, type LiveStanding, type Competition } from "../lib/liveApi";
+import { MatchCardSkeleton, Skeleton, ErrorState } from "../components/Skeleton";
+
+interface LiveHomepage {
+  liveMatches: LiveMatch[];
+  upcomingMatches: LiveMatch[];
+  featuredStandings: LiveStanding[];
+  competitions: Competition[];
+}
+
+function MatchCard({ match }: { match: LiveMatch }) {
+  const isLive = match.status === "live";
+  const isUpcoming = match.status === "upcoming";
+  const date = new Date(match.matchDate);
+  const timeStr = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const dateStr = date.toLocaleDateString([], { month: "short", day: "numeric" });
+
+  return (
+    <div className={`bg-card border rounded-xl p-4 transition-all hover:border-primary/40 ${isLive ? "border-primary/50 shadow-[0_0_12px_rgba(0,179,131,0.12)]" : "border-border"}`}>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-1.5">
+          <img src={match.leagueEmblem} alt="" className="w-4 h-4 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+          <span className="text-xs text-muted-foreground font-medium truncate max-w-[110px]">{match.leagueName}</span>
+        </div>
+        {isLive ? (
+          <span className="flex items-center gap-1 text-xs font-bold text-primary">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+            {match.minute ? `${match.minute}'` : "LIVE"}
+          </span>
+        ) : isUpcoming ? (
+          <span className="text-xs text-muted-foreground">{dateStr} · {timeStr}</span>
+        ) : (
+          <span className="text-xs text-muted-foreground">FT</span>
+        )}
+      </div>
+      <div className="space-y-2">
+        {[
+          { team: match.homeTeam, score: match.homeScore },
+          { team: match.awayTeam, score: match.awayScore },
+        ].map(({ team, score }, i) => (
+          <div key={i} className="flex items-center justify-between">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <img src={team.crest} alt={team.name} className="w-6 h-6 object-contain flex-shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
+              <span className="font-semibold text-sm truncate">{team.shortName ?? team.name}</span>
+            </div>
+            <span className={`text-lg font-bold tabular-nums ml-2 ${isLive ? "text-primary" : "text-foreground"}`}>
+              {score !== null ? score : "—"}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function StandingsMini({ standings }: { standings: LiveStanding[] }) {
+  return (
+    <div className="bg-card border border-border rounded-xl overflow-hidden">
+      <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <img src="https://crests.football-data.org/PL.png" alt="PL" className="w-5 h-5 object-contain" />
+          <span className="font-bold text-sm">Premier League</span>
+        </div>
+        <Link href="/standings" className="text-xs text-primary hover:underline">Full table</Link>
+      </div>
+      <table className="w-full text-xs">
+        <tbody className="divide-y divide-border">
+          {standings.map((row) => (
+            <tr key={row.team.id} className="hover:bg-secondary/30 transition-colors">
+              <td className="px-3 py-2 text-muted-foreground w-6">{row.position}</td>
+              <td className="px-2 py-2">
+                <div className="flex items-center gap-1.5">
+                  <img src={row.team.crest} alt="" className="w-4 h-4 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
+                  <span className="font-medium">{row.team.shortName ?? row.team.name}</span>
+                </div>
+              </td>
+              <td className="px-2 py-2 text-muted-foreground text-center">{row.played}</td>
+              <td className="px-3 py-2 font-bold text-center">{row.points}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 export default function Home() {
-  const { data: homepageData, isLoading, error } = useGetHomepage();
+  const { data, isLoading, isError, refetch } = useQuery<LiveHomepage>({
+    queryKey: ["live-homepage"],
+    queryFn: () => apiFetch("/api/live/homepage"),
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+    retry: 2,
+  });
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
+      <div className="space-y-10 pb-10">
+        <section>
+          <Skeleton className="h-8 w-48 mb-6" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => <MatchCardSkeleton key={i} />)}
+          </div>
+        </section>
+        <section>
+          <Skeleton className="h-8 w-48 mb-6" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {Array.from({ length: 8 }).map((_, i) => <MatchCardSkeleton key={i} />)}
+          </div>
+        </section>
       </div>
     );
   }
 
-  if (error || !homepageData) {
-    return <div className="text-destructive p-4 bg-destructive/10 rounded-lg border border-destructive/20">Failed to load homepage data.</div>;
+  if (isError) {
+    return <ErrorState message="Could not load homepage data" onRetry={() => refetch()} />;
   }
+
+  const { liveMatches = [], upcomingMatches = [], featuredStandings = [] } = data ?? {};
 
   return (
     <div className="space-y-10 pb-10">
+      {/* Live matches */}
       <section>
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-5">
           <h2 className="text-2xl font-bold flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-            Live Matches
+            <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            Live Now
           </h2>
-          <Link href="/matches" className="text-sm text-primary hover:underline font-medium">View All</Link>
+          <Link href="/matches?status=live" className="text-sm text-primary hover:underline font-medium">View all</Link>
         </div>
-        {homepageData.liveMatches && homepageData.liveMatches.length > 0 ? (
+        {liveMatches.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {homepageData.liveMatches.map((match) => (
-              <MatchCard key={match.id} match={match} showLeague={true} />
-            ))}
+            {liveMatches.map((m) => <MatchCard key={m.id} match={m} />)}
           </div>
         ) : (
-          <div className="text-muted-foreground p-8 bg-card rounded-lg border border-border text-center">
-            No live matches right now.
+          <div className="text-muted-foreground p-8 bg-card rounded-xl border border-border text-center">
+            <p className="text-base font-medium">No live matches right now</p>
+            <p className="text-sm mt-1">Check back during match days</p>
           </div>
         )}
       </section>
 
-      <section>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold">Upcoming Fixtures</h2>
-          <Link href="/matches" className="text-sm text-primary hover:underline font-medium">View All</Link>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {homepageData.upcomingMatches?.map((match) => (
-            <MatchCard key={match.id} match={match} showLeague={true} />
-          ))}
-        </div>
-      </section>
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-10">
-          <section>
-            <h2 className="text-2xl font-bold mb-6">Top News</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {homepageData.topNews?.map((news) => (
-                <Link key={news.id} href={`/league/${news.leagueSlug}`} className="group block">
-                  <div className="bg-card border border-border rounded-lg overflow-hidden transition-all hover:shadow-lg hover:border-primary/50">
-                    <div className="h-48 bg-muted relative overflow-hidden">
-                      <img src={news.imageUrl} alt={news.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                      <div className="absolute top-3 left-3">
-                        <span className="px-2 py-1 text-xs font-bold uppercase tracking-wider bg-black/70 text-white backdrop-blur-md rounded">
-                          {news.category}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="p-4">
-                      <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
-                        <span>{news.source}</span>
-                        <span>{format(new Date(news.publishedAt), "MMM d, yyyy")}</span>
-                      </div>
-                      <h3 className="text-lg font-bold mb-2 group-hover:text-primary transition-colors line-clamp-2">{news.title}</h3>
-                      <p className="text-muted-foreground text-sm line-clamp-2">{news.excerpt}</p>
-                    </div>
+        {/* Upcoming fixtures (2/3 width) */}
+        <div className="lg:col-span-2 space-y-5">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold">Upcoming Fixtures</h2>
+            <Link href="/matches" className="text-sm text-primary hover:underline font-medium">View all</Link>
+          </div>
+          {upcomingMatches.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {upcomingMatches.slice(0, 12).map((m) => <MatchCard key={m.id} match={m} />)}
+            </div>
+          ) : (
+            <div className="text-muted-foreground p-8 bg-card rounded-xl border border-border text-center">
+              No upcoming fixtures scheduled
+            </div>
+          )}
+        </div>
+
+        {/* Sidebar: PL standings + competitions */}
+        <div className="space-y-6">
+          {featuredStandings.length > 0 && (
+            <StandingsMini standings={featuredStandings} />
+          )}
+
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-border">
+              <span className="font-bold text-sm">Competitions</span>
+            </div>
+            <div className="divide-y divide-border">
+              {COMPETITIONS.map((comp) => (
+                <Link key={comp.slug} href={`/league/${comp.slug}`} className="flex items-center gap-3 px-4 py-3 hover:bg-secondary/30 transition-colors group">
+                  <img src={comp.emblem} alt={comp.name} className="w-6 h-6 object-contain flex-shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium group-hover:text-primary transition-colors">{comp.name}</p>
+                    <p className="text-xs text-muted-foreground">{comp.country}</p>
                   </div>
                 </Link>
               ))}
             </div>
-          </section>
-        </div>
-
-        <div className="space-y-10">
-          <section>
-            <h2 className="text-2xl font-bold mb-6">Latest Transfers</h2>
-            <div className="bg-card border border-border rounded-lg overflow-hidden">
-              <div className="divide-y divide-border">
-                {homepageData.transfers?.slice(0, 5).map((transfer) => (
-                  <div key={transfer.id} className="p-4 hover:bg-secondary/50 transition-colors">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-10 h-10 rounded-full overflow-hidden bg-muted border border-border">
-                        <img src={transfer.playerPhoto} alt={transfer.playerName} className="w-full h-full object-cover" />
-                      </div>
-                      <div>
-                        <div className="font-bold text-sm">{transfer.playerName}</div>
-                        <div className="text-xs text-muted-foreground font-medium">{transfer.fee}</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs">
-                      <div className="flex items-center gap-1">
-                        {transfer.fromTeamLogo && <img src={transfer.fromTeamLogo} className="w-4 h-4 object-contain" alt="" />}
-                        <span className="truncate max-w-[80px]">{transfer.fromTeam}</span>
-                      </div>
-                      <span className="text-muted-foreground">→</span>
-                      <div className="flex items-center gap-1 font-semibold text-primary">
-                        {transfer.toTeamLogo && <img src={transfer.toTeamLogo} className="w-4 h-4 object-contain" alt="" />}
-                        <span className="truncate max-w-[80px]">{transfer.toTeam}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <Link href="/transfers" className="block w-full text-center p-3 text-sm font-semibold text-primary hover:bg-secondary transition-colors border-t border-border">
-                View All Transfers
-              </Link>
-            </div>
-          </section>
+          </div>
         </div>
       </div>
     </div>

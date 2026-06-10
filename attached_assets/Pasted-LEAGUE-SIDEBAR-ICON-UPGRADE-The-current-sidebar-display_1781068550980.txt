@@ -1,0 +1,111 @@
+LEAGUE SIDEBAR ICON UPGRADE
+
+The current sidebar displays generic icons or bullets next to each league. I want each competition to display its official league logo instead.
+
+REQUIREMENTS
+
+1. Replace all generic sidebar icons with league-specific logos/images.
+
+Current leagues:
+
+* Premier League
+* La Liga
+* Serie A
+* Bundesliga
+* Ligue 1
+* UEFA Champions League
+* UEFA Europa League
+* Saudi Pro League
+* MLS
+* FIFA World Cup
+
+2. Each sidebar item should contain:
+   [League Logo] [League Name]
+
+Example:
+[Premier League Logo] Premier League
+[La Liga Logo] La Liga
+[Serie A Logo] Serie A
+
+3. Logo specifications:
+
+* Size: 24px–32px
+* Maintain aspect ratio
+* High-quality PNG or SVG preferred
+* Transparent background
+* Sharp on Retina displays
+
+4. Image loading
+
+* Use official league logo URLs when available.
+* Store logo mappings in a dedicated file:
+
+/data/leagueLogos.ts
+
+Example structure:
+
+{
+premierLeague: "logo-url",
+laLiga: "logo-url",
+serieA: "logo-url"
+}
+
+5. Fallback handling
+   If a logo fails to load:
+
+* Display a football icon fallback
+* Do not show broken image placeholders
+
+6. Active league styling
+   When a league is selected:
+
+* Highlight background
+* Slightly enlarge logo
+* Add smooth transition animation
+* Keep current green theme
+
+7. Hover effects
+
+* Slight logo scale increase
+* Smooth animation
+* Cursor pointer
+
+8. Performance
+
+* Lazy load league images
+* Cache images after first load
+* Prevent duplicate image requests
+
+9. Responsive behavior
+
+* Logos remain visible on smaller screens
+* Proper alignment with league names
+* No text overlap
+
+10. Code cleanup
+    Search the project and replace:
+
+* Generic trophy icons
+* Bullet icons
+* Placeholder icons
+* Emoji icons
+
+with actual league logos.
+
+11. Final result
+
+Sidebar should look similar to professional football apps:
+
+[Premier League Logo] Premier League
+[La Liga Logo] La Liga
+[Serie A Logo] Serie A
+[Bundesliga Logo] Bundesliga
+[Ligue 1 Logo] Ligue 1
+[Champions League Logo] Champions League
+[Europa League Logo] Europa League
+[Saudi Pro League Logo] Saudi Pro League
+[MLS Logo] MLS
+[World Cup Logo] FIFA World Cup
+
+Priority:
+Official league logos > generic icons.

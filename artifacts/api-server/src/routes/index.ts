@@ -9,10 +9,20 @@ import transfersRouter from "./transfers";
 import newsRouter from "./news";
 import homepageRouter from "./homepage";
 import preferencesRouter from "./preferences";
+import liveStandingsRouter from "./live-standings";
+import liveMatchesRouter from "./live-matches";
+import liveScorersRouter from "./live-scorers";
+import liveTeamsRouter from "./live-teams";
+import liveHomepageRouter from "./live-homepage";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
+router.use(liveStandingsRouter);
+router.use(liveMatchesRouter);
+router.use(liveScorersRouter);
+router.use(liveTeamsRouter);
+router.use(liveHomepageRouter);
 router.use(leaguesRouter);
 router.use(matchesRouter);
 router.use(standingsRouter);

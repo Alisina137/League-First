@@ -1,60 +1,54 @@
-import { useState } from "react";
-import { useListStandings, useListLeagues } from "@workspace/api-client-react";
+import { useState, useEffect, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { apiFetch, COMPETITIONS, type LiveStanding } from "../lib/liveApi";
+import { TableSkeleton, ErrorState, EmptyState } from "../components/Skeleton";
 
-const POPULAR_LEAGUES = [
-  { name: "Premier League", slug: "premier-league" },
-  { name: "La Liga", slug: "la-liga" },
-  { name: "Serie A", slug: "serie-a" },
-  { name: "Bundesliga", slug: "bundesliga" },
-  { name: "Ligue 1", slug: "ligue-1" },
-  { name: "Champions League", slug: "champions-league" },
-];
+const REFRESH_MS = 15 * 60 * 1000;
+
+const formColors: Record<string, string> = {
+  W: "bg-green-500",
+  D: "bg-yellow-500",
+  L: "bg-red-500",
+};
 
 export default function Standings() {
-  const [selectedLeague, setSelectedLeague] = useState("premier-league");
+  const [slug, setSlug] = useState("premier-league");
 
-  const { data: standings, isLoading } = useListStandings({ leagueSlug: selectedLeague });
-  const { data: leagues } = useListLeagues();
-
-  const formColors: Record<string, string> = {
-    W: "bg-green-500",
-    D: "bg-yellow-500",
-    L: "bg-red-500",
-  };
+  const { data, isLoading, isError, refetch } = useQuery<LiveStanding[]>({
+    queryKey: ["live-standings", slug],
+    queryFn: () => apiFetch(`/api/live/standings?leagueSlug=${slug}`),
+    staleTime: REFRESH_MS,
+    refetchInterval: REFRESH_MS,
+    retry: 2,
+  });
 
   return (
     <div className="space-y-6 pb-10">
       <h1 className="text-3xl font-bold tracking-tight">Standings</h1>
 
-      {/* League tabs */}
       <div className="flex flex-wrap gap-2">
-        {(leagues ?? POPULAR_LEAGUES).map((league) => (
+        {COMPETITIONS.map((comp) => (
           <button
-            key={league.slug}
-            onClick={() => setSelectedLeague(league.slug)}
-            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${
-              selectedLeague === league.slug
+            key={comp.slug}
+            onClick={() => setSlug(comp.slug)}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-semibold transition-colors ${
+              slug === comp.slug
                 ? "bg-primary text-primary-foreground"
                 : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
             }`}
           >
-            {"logoUrl" in league && (
-              <img src={(league as any).logoUrl} alt="" className="w-4 h-4 object-contain" />
-            )}
-            {league.name}
+            <img src={comp.emblem} alt="" className="w-4 h-4 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+            {comp.name}
           </button>
         ))}
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center min-h-[40vh]">
-          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
-        </div>
-      ) : !standings || standings.length === 0 ? (
-        <div className="text-center py-20 text-muted-foreground">
-          <p className="text-lg font-semibold mb-2">No standings available</p>
-          <p className="text-sm">Select a different league.</p>
-        </div>
+        <TableSkeleton rows={20} cols={7} />
+      ) : isError ? (
+        <ErrorState message="Standings currently unavailable" onRetry={() => refetch()} />
+      ) : !data || data.length === 0 ? (
+        <EmptyState message="No standings data for this competition" />
       ) : (
         <div className="bg-card border border-border rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
@@ -75,21 +69,20 @@ export default function Standings() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {standings.map((row, idx) => {
+                {data.map((row) => {
                   const isTop4 = row.position <= 4;
-                  const isTop6 = row.position <= 6;
-                  const isBottom3 = standings.length - row.position < 3;
+                  const isBottom3 = data.length - row.position < 3;
                   return (
                     <tr
                       key={row.team.id}
                       className={`transition-colors hover:bg-secondary/50 ${
-                        isTop4 ? "border-l-2 border-l-primary" : isTop6 ? "border-l-2 border-l-primary/30" : isBottom3 ? "border-l-2 border-l-destructive/50" : ""
+                        isTop4 ? "border-l-2 border-l-primary" : isBottom3 ? "border-l-2 border-l-destructive/50" : ""
                       }`}
                     >
                       <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{row.position}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <img src={row.team.logoUrl} alt={row.team.name} className="w-6 h-6 object-contain" />
+                          <img src={row.team.crest} alt={row.team.name} className="w-6 h-6 object-contain flex-shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
                           <span className="font-semibold">{row.team.name}</span>
                         </div>
                       </td>
@@ -104,22 +97,27 @@ export default function Standings() {
                       </td>
                       <td className="text-center px-3 py-3 font-bold text-foreground">{row.points}</td>
                       <td className="text-center px-3 py-3 hidden xl:table-cell">
-                        <div className="flex items-center justify-center gap-0.5">
-                          {row.form.split("").slice(-5).map((r, i) => (
-                            <span
-                              key={i}
-                              className={`w-4 h-4 rounded-sm text-xs font-bold text-white flex items-center justify-center ${formColors[r] ?? "bg-muted"}`}
-                            >
-                              {r}
-                            </span>
-                          ))}
-                        </div>
+                        {row.form ? (
+                          <div className="flex items-center justify-center gap-0.5">
+                            {row.form.split(",").filter(Boolean).slice(-5).map((r, i) => (
+                              <span key={i} className={`w-4 h-4 rounded-sm text-[10px] font-bold text-white flex items-center justify-center ${formColors[r.trim()] ?? "bg-muted"}`}>
+                                {r.trim().charAt(0)}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
                       </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
+          </div>
+          <div className="px-4 py-2 border-t border-border text-xs text-muted-foreground flex gap-4">
+            <span className="flex items-center gap-1"><span className="w-2 h-2 bg-primary rounded-full inline-block" /> Champions League</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 bg-destructive/50 rounded-full inline-block" /> Relegation</span>
           </div>
         </div>
       )}

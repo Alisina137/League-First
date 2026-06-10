@@ -1,21 +1,82 @@
 import { useState } from "react";
-import { useListMatches, useListLeagues } from "@workspace/api-client-react";
-import { MatchCard } from "../components/MatchCard";
-import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { apiFetch, COMPETITIONS, type LiveMatch } from "../lib/liveApi";
+import { MatchCardSkeleton, ErrorState, EmptyState } from "../components/Skeleton";
 
 type StatusFilter = "all" | "live" | "upcoming" | "finished";
 
+const REFRESH: Record<StatusFilter, number> = {
+  live: 60_000,
+  upcoming: 5 * 60_000,
+  finished: 30 * 60_000,
+  all: 60_000,
+};
+
+function MatchCard({ match }: { match: LiveMatch }) {
+  const isLive = match.status === "live";
+  const isUpcoming = match.status === "upcoming";
+  const date = new Date(match.matchDate);
+  const timeStr = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const dateStr = date.toLocaleDateString([], { month: "short", day: "numeric" });
+
+  return (
+    <div className={`bg-card border rounded-xl p-4 transition-all hover:border-primary/40 hover:shadow-md ${isLive ? "border-primary/50 shadow-[0_0_12px_rgba(0,179,131,0.12)]" : "border-border"}`}>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-1.5">
+          <img src={match.leagueEmblem} alt={match.leagueName} className="w-4 h-4 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+          <span className="text-xs text-muted-foreground font-medium truncate max-w-[120px]">{match.leagueName}</span>
+        </div>
+        {isLive ? (
+          <span className="flex items-center gap-1 text-xs font-bold text-primary">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+            {match.minute ? `${match.minute}'` : "LIVE"}
+          </span>
+        ) : isUpcoming ? (
+          <span className="text-xs text-muted-foreground">{dateStr} · {timeStr}</span>
+        ) : (
+          <span className="text-xs text-muted-foreground">FT</span>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        {[
+          { team: match.homeTeam, score: match.homeScore },
+          { team: match.awayTeam, score: match.awayScore },
+        ].map(({ team, score }, i) => (
+          <div key={i} className="flex items-center justify-between">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <img src={team.crest} alt={team.name} className="w-6 h-6 object-contain flex-shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
+              <span className="font-semibold text-sm truncate">{team.shortName ?? team.name}</span>
+            </div>
+            <span className={`text-lg font-bold tabular-nums ml-2 ${isLive ? "text-primary" : "text-foreground"}`}>
+              {score !== null ? score : isUpcoming ? "-" : "?"}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {match.venue && (
+        <p className="mt-2 text-xs text-muted-foreground truncate">📍 {match.venue}</p>
+      )}
+    </div>
+  );
+}
+
 export default function Matches() {
   const [status, setStatus] = useState<StatusFilter>("all");
-  const [leagueSlug, setLeagueSlug] = useState<string | undefined>(undefined);
+  const [leagueSlug, setLeagueSlug] = useState<string | undefined>();
 
-  const params = {
-    ...(status !== "all" ? { status: status as "live" | "upcoming" | "finished" } : {}),
-    ...(leagueSlug ? { leagueSlug } : {}),
-  };
+  const qs = new URLSearchParams();
+  if (status !== "all") qs.set("status", status);
+  if (leagueSlug) qs.set("leagueSlug", leagueSlug);
 
-  const { data: matches, isLoading } = useListMatches(params);
-  const { data: leagues } = useListLeagues();
+  const { data, isLoading, isError, refetch } = useQuery<LiveMatch[]>({
+    queryKey: ["live-matches", status, leagueSlug],
+    queryFn: () => apiFetch(`/api/live/matches?${qs}`),
+    staleTime: REFRESH[status],
+    refetchInterval: REFRESH[status],
+    retry: 2,
+  });
 
   const statusOptions: { value: StatusFilter; label: string }[] = [
     { value: "all", label: "All" },
@@ -34,13 +95,11 @@ export default function Matches() {
               key={opt.value}
               onClick={() => setStatus(opt.value)}
               className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${
-                status === opt.value
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                status === opt.value ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
               }`}
             >
-              {opt.value === "live" && status === opt.value && (
-                <span className="inline-block w-2 h-2 rounded-full bg-primary-foreground mr-1.5 animate-pulse" />
+              {opt.value === "live" && (
+                <span className={`inline-block w-2 h-2 rounded-full mr-1.5 ${status === "live" ? "bg-primary-foreground animate-pulse" : "bg-primary"}`} />
               )}
               {opt.label}
             </button>
@@ -48,46 +107,38 @@ export default function Matches() {
         </div>
       </div>
 
-      {/* League filter pills */}
-      {leagues && leagues.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={() => setLeagueSlug(undefined)}
+          className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${!leagueSlug ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`}
+        >
+          All Leagues
+        </button>
+        {COMPETITIONS.map((c) => (
           <button
-            onClick={() => setLeagueSlug(undefined)}
-            className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
-              !leagueSlug ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+            key={c.slug}
+            onClick={() => setLeagueSlug(c.slug)}
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+              leagueSlug === c.slug ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
             }`}
           >
-            All Leagues
+            <img src={c.emblem} alt="" className="w-3.5 h-3.5 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+            {c.name}
           </button>
-          {leagues.map((league) => (
-            <button
-              key={league.slug}
-              onClick={() => setLeagueSlug(league.slug)}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
-                leagueSlug === league.slug ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-              }`}
-            >
-              <img src={league.logoUrl} alt="" className="w-3.5 h-3.5 object-contain" />
-              {league.name}
-            </button>
-          ))}
-        </div>
-      )}
+        ))}
+      </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center min-h-[40vh]">
-          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {Array.from({ length: 12 }).map((_, i) => <MatchCardSkeleton key={i} />)}
         </div>
-      ) : !matches || matches.length === 0 ? (
-        <div className="text-center py-20 text-muted-foreground">
-          <p className="text-lg font-semibold mb-2">No matches found</p>
-          <p className="text-sm">Try changing the filters above.</p>
-        </div>
+      ) : isError ? (
+        <ErrorState message="Matches currently unavailable" onRetry={() => refetch()} />
+      ) : !data || data.length === 0 ? (
+        <EmptyState message={status === "live" ? "No live matches right now" : "No matches found"} />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {matches.map((match) => (
-            <MatchCard key={match.id} match={match} showLeague={!leagueSlug} />
-          ))}
+          {data.map((match) => <MatchCard key={match.id} match={match} />)}
         </div>
       )}
     </div>
