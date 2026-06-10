@@ -23,14 +23,43 @@ async function afFetch(path: string): Promise<unknown> {
 
 interface CacheEntry<T> { data: T; expiresAt: number; }
 const cache = new Map<string, CacheEntry<unknown>>();
+const errorCache = new Map<string, number>(); // key → retry-after timestamp
+
+const RATE_LIMIT_BACKOFF_MS = 65_000; // back off for 65s on 429
+
+// Global sequential request queue — ensures we never fire more than one
+// API-Football request at a time (free plan: 10 req/min).
+let inflight: Promise<unknown> = Promise.resolve();
+function enqueue<T>(fn: () => Promise<T>): Promise<T> {
+  const next = inflight.then(() => fn(), () => fn());
+  inflight = next.catch(() => {});
+  return next;
+}
 
 async function cached<T>(key: string, ttlMs: number, fetcher: () => Promise<T>): Promise<T> {
   const now = Date.now();
   const entry = cache.get(key) as CacheEntry<T> | undefined;
   if (entry && entry.expiresAt > now) return entry.data;
-  const data = await fetcher();
-  cache.set(key, { data, expiresAt: now + ttlMs });
-  return data;
+
+  const retryAfter = errorCache.get(key);
+  if (retryAfter && retryAfter > now) {
+    throw new Error(`API-Football rate limit: retry after ${Math.ceil((retryAfter - now) / 1000)}s`);
+  }
+
+  return enqueue(async () => {
+    try {
+      const data = await fetcher();
+      errorCache.delete(key);
+      cache.set(key, { data, expiresAt: Date.now() + ttlMs });
+      return data;
+    } catch (err) {
+      const msg = String(err);
+      if (msg.includes("429") || msg.includes("rateLimit")) {
+        errorCache.set(key, Date.now() + RATE_LIMIT_BACKOFF_MS);
+      }
+      throw err;
+    }
+  });
 }
 
 const TTL = {
@@ -47,7 +76,7 @@ export const AF_COMPETITIONS: Record<string, {
 }> = {
   "europa-league":    { leagueId: 3,   season: 2024, name: "UEFA Europa League", country: "Europe",       code: "EL",  emblem: "https://crests.football-data.org/EL.png" },
   "saudi-pro-league": { leagueId: 307, season: 2024, name: "Saudi Pro League",   country: "Saudi Arabia", code: "SPL", emblem: "https://media.api-sports.io/football/leagues/307.png" },
-  "mls":              { leagueId: 253, season: 2025, name: "MLS",                country: "USA",          code: "MLS", emblem: "https://media.api-sports.io/football/leagues/253.png" },
+  "mls":              { leagueId: 253, season: 2024, name: "MLS",                country: "USA",          code: "MLS", emblem: "https://media.api-sports.io/football/leagues/253.png" },
 };
 
 function normalizeStatus(short: string): "live" | "upcoming" | "finished" {
@@ -254,8 +283,11 @@ export async function getTeams(slug: string): Promise<LiveTeam[]> {
 }
 
 export function invalidateCache(pattern?: string): void {
-  if (!pattern) { cache.clear(); return; }
+  if (!pattern) { cache.clear(); errorCache.clear(); return; }
   for (const key of cache.keys()) {
     if (key.includes(pattern)) cache.delete(key);
+  }
+  for (const key of errorCache.keys()) {
+    if (key.includes(pattern)) errorCache.delete(key);
   }
 }
