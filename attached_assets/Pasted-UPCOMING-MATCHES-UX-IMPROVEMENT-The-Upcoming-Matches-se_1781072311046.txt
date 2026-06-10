@@ -1,0 +1,215 @@
+UPCOMING MATCHES UX IMPROVEMENT
+
+The Upcoming Matches section should intelligently handle cases where there are no upcoming matches in the near future.
+
+GOAL
+
+Never show an empty Upcoming Matches area.
+
+Always provide useful information to the user.
+
+---
+
+## STATE 1: UPCOMING MATCHES EXIST
+
+If there are matches scheduled within the next 10 days:
+
+Display normal match cards.
+
+Example:
+
+Real Madrid vs Barcelona
+Jun 15, 2026
+20:00
+
+Manchester City vs Arsenal
+Jun 17, 2026
+18:00
+
+---
+
+## STATE 2: NO MATCHES WITHIN 10 DAYS
+
+If there are NO matches scheduled in the next 10 days:
+
+Replace match cards with:
+
+---
+
+COMING SOON
+No matches are scheduled within the next 10 days.
+-------------------------------------------------
+
+Also display:
+
+Next Match Scheduled:
+[Date]
+
+Example:
+
+COMING SOON
+
+No matches are scheduled within the next 10 days.
+
+Next Match Scheduled:
+July 12, 2026
+
+---
+
+## STATE 3: TOURNAMENT NOT STARTED YET
+
+For tournaments such as:
+
+* FIFA World Cup
+* Champions League
+* Europa League
+
+If the tournament has not started:
+
+Show:
+
+---
+
+## TOURNAMENT STARTS SOON
+
+Competition:
+FIFA World Cup
+
+Tournament Begins:
+June 11, 2026
+
+Days Remaining:
+18
+
+---
+
+Include a countdown badge:
+
+18 Days Remaining
+
+---
+
+## API LOGIC
+
+Fetch:
+
+Upcoming Matches
+
+If result count > 0:
+Show match cards.
+
+Else:
+
+Fetch next available fixture date.
+
+If date exists:
+
+Show:
+
+Coming Soon
+
+Next Match: <Date>
+
+If no fixtures exist:
+
+Show:
+
+Schedule not yet announced.
+
+---
+
+## EXAMPLES
+
+Example 1
+
+Champions League
+
+No fixtures in next 10 days.
+
+Display:
+
+COMING SOON
+
+Next Match:
+August 22, 2026
+
+---
+
+Example 2
+
+World Cup before tournament starts.
+
+Display:
+
+TOURNAMENT STARTS SOON
+
+FIFA World Cup
+
+Starts:
+June 11, 2026
+
+18 Days Remaining
+
+---
+
+Example 3
+
+Season completed.
+
+Display:
+
+SEASON COMPLETED
+
+No remaining fixtures.
+
+Check back when the new season schedule is released.
+
+---
+
+## VISUAL DESIGN
+
+Show an attractive placeholder card:
+
+Icon:
+📅
+
+Title:
+Coming Soon
+
+Subtitle:
+Next fixtures will appear here automatically.
+
+Use:
+
+* League logo
+* Tournament logo
+* Countdown badge
+* Theme-compatible styling
+
+---
+
+## FINAL VERIFICATION
+
+Verify:
+
+✓ Empty match sections never appear
+✓ Coming Soon appears when no matches exist
+✓ Next fixture date is displayed when available
+✓ Tournament start date is displayed when available
+✓ Countdown works correctly
+✓ World Cup supported
+✓ Champions League supported
+✓ Europa League supported
+✓ Dark Mode supported
+✓ Light Mode supported
+
+IMPORTANT
+
+An empty Upcoming Matches section should never be shown.
+
+Always display either:
+
+1. Upcoming matches
+2. Coming Soon + next fixture date
+3. Tournament Starts Soon + countdown
+4. Season Completed

@@ -1,0 +1,252 @@
+FEATURE REQUEST: KNOCKOUT STAGE SUPPORT FOR TOURNAMENTS
+
+The application currently focuses primarily on league standings and matches.
+
+I want full Knockout Stage support for tournament competitions:
+
+* UEFA Champions League
+* UEFA Europa League
+* FIFA World Cup
+
+GOAL
+
+When a tournament competition is selected, display both:
+
+1. Group Stage
+2. Knockout Stage
+
+with dedicated sections and navigation.
+
+---
+
+## TOURNAMENT NAVIGATION
+
+For tournament competitions add tabs:
+
+[Overview]
+[Group Stage]
+[Knockout Stage]
+[Matches]
+[Teams]
+
+Example:
+
+## Champions League
+
+## Overview | Group Stage | Knockout Stage | Matches | Teams
+
+## World Cup
+
+## Overview | Group Stage | Knockout Stage | Matches | Teams
+
+---
+
+## KNOCKOUT STAGE SECTION
+
+Create a dedicated Knockout Stage page.
+
+Display tournament bracket structure:
+
+Round of 16
+Quarter Finals
+Semi Finals
+Final
+
+For competitions that use different formats:
+
+Europa League
+Champions League
+World Cup
+
+Adapt automatically based on API data.
+
+---
+
+## MATCH CARDS
+
+Each knockout match should show:
+
+* Home Team Logo
+* Home Team Name
+* Away Team Logo
+* Away Team Name
+* Score
+* Aggregate Score (if applicable)
+* Match Date
+* Stadium
+* Match Status
+
+Examples:
+
+Real Madrid 2 - 1 Bayern Munich
+
+Aggregate:
+4 - 3
+
+---
+
+## TOURNAMENT BRACKET VIEW
+
+Create a visual bracket.
+
+Example:
+
+Round of 16
+↓
+Quarter Finals
+↓
+Semi Finals
+↓
+Final
+↓
+Champion
+
+Display progression visually.
+
+If bracket data exists from API:
+Use bracket view.
+
+If bracket data unavailable:
+Display knockout rounds in grouped cards.
+
+---
+
+## WORLD CUP SUPPORT
+
+World Cup should include:
+
+Group Stage
+
+Group A
+Group B
+Group C
+Group D
+Group E
+Group F
+Group G
+Group H
+
+Knockout Stage
+
+Round of 16
+Quarter Finals
+Semi Finals
+Third Place Match
+Final
+
+---
+
+## CHAMPIONS LEAGUE SUPPORT
+
+Show:
+
+League Phase / Group Phase
+Round of 16
+Quarter Finals
+Semi Finals
+Final
+
+Display aggregate scores when available.
+
+---
+
+## EUROPA LEAGUE SUPPORT
+
+Show:
+
+Group Phase
+Knockout Playoffs
+Round of 16
+Quarter Finals
+Semi Finals
+Final
+
+---
+
+## LIVE DATA ONLY
+
+All knockout matches must come from the football API.
+
+Do NOT use:
+
+* hardcoded brackets
+* mock fixtures
+* placeholder results
+
+---
+
+## AUTO UPDATE
+
+Refresh tournament data:
+
+Live matches:
+every 60 seconds
+
+Completed tournaments:
+every 24 hours
+
+---
+
+## KNOCKOUT RESULTS
+
+Completed matches should show:
+
+Winner
+Final Score
+Aggregate Score
+Advancing Team
+
+Example:
+
+Manchester City
+Advanced 5-2 on aggregate
+
+---
+
+## UI REQUIREMENTS
+
+* Responsive bracket view
+* Horizontal scrolling on mobile
+* Team logos displayed everywhere
+* Smooth animations
+* Dark Mode compatible
+* Light Mode compatible
+
+---
+
+## FALLBACK BEHAVIOR
+
+If knockout data is unavailable:
+
+Show:
+
+"No knockout stage data currently available."
+
+Do NOT display incorrect league standings.
+
+---
+
+## FINAL VERIFICATION
+
+Verify:
+
+✓ Champions League shows knockout rounds
+✓ Europa League shows knockout rounds
+✓ World Cup shows knockout rounds
+✓ Bracket updates from API
+✓ Aggregate scores work
+✓ Team logos load correctly
+✓ Mobile layout works
+✓ Dark mode works
+✓ Light mode works
+✓ No hardcoded tournament data exists
+
+IMPORTANT
+
+Tournament competitions must have a completely different experience from domestic leagues.
+
+Domestic leagues:
+Focus on standings.
+
+Tournaments:
+Focus on groups + knockout stages + brackets.

@@ -83,6 +83,7 @@ export interface LiveMatch {
   minute: number | null;
   matchDate: string;
   matchday: number | null;
+  stage?: string;
   venue: string | null;
   leagueCode: string;
   leagueName: string;
@@ -225,6 +226,7 @@ export async function getMatches(slug: string, status?: string): Promise<LiveMat
         id: number;
         utcDate: string;
         status: string;
+        stage?: string;
         matchday: number | null;
         homeTeam: { id: number; name: string; shortName: string; tla: string; crest: string };
         awayTeam: { id: number; name: string; shortName: string; tla: string; crest: string };
@@ -243,6 +245,7 @@ export async function getMatches(slug: string, status?: string): Promise<LiveMat
       minute: parseMinute(m.score, m.status, m.minute),
       matchDate: m.utcDate,
       matchday: m.matchday,
+      stage: m.stage,
       venue: m.venue ?? null,
       leagueCode: comp.code,
       leagueName: comp.name,

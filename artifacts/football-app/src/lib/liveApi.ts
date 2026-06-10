@@ -34,11 +34,25 @@ export interface LiveMatch {
   minute: number | null;
   matchDate: string;
   matchday: number | null;
+  stage?: string;
   venue: string | null;
   leagueCode: string;
   leagueName: string;
   leagueSlug: string;
   leagueEmblem: string;
+}
+
+export interface KnockoutRound {
+  stage: string;
+  label: string;
+  order: number;
+  matches: LiveMatch[];
+}
+
+export interface KnockoutData {
+  competition: Competition;
+  rounds: KnockoutRound[];
+  isLive: boolean;
 }
 
 export interface LiveScorer {

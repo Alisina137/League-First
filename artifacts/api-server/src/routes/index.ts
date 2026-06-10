@@ -15,6 +15,7 @@ import liveScorersRouter from "./live-scorers";
 import liveTeamsRouter from "./live-teams";
 import liveHomepageRouter from "./live-homepage";
 import liveLeagueHubRouter from "./live-league-hub";
+import liveKnockoutRouter from "./live-knockout";
 
 const router: IRouter = Router();
 
@@ -25,6 +26,7 @@ router.use(liveScorersRouter);
 router.use(liveTeamsRouter);
 router.use(liveHomepageRouter);
 router.use(liveLeagueHubRouter);
+router.use(liveKnockoutRouter);
 router.use(leaguesRouter);
 router.use(matchesRouter);
 router.use(standingsRouter);
