@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { LEAGUE_LOGOS } from "../data/leagueLogos";
+import { ThemeToggle } from "./ThemeToggle";
 
 const TOP_TABS = [
   { label: "Standings", href: "/standings", icon: Trophy },
@@ -140,6 +141,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <LeagueList location={location} />
           </div>
         </div>
+
+        {/* Theme toggle pinned at bottom */}
+        <div className="p-3 border-t border-border flex-shrink-0">
+          <ThemeToggle />
+        </div>
       </aside>
 
       {/* ── Main column ── */}
@@ -151,12 +157,15 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <Trophy className="w-5 h-5" />
             <span>Football Hub</span>
           </Link>
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-          >
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
+          <div className="flex items-center gap-1">
+            <ThemeToggle compact />
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          </div>
         </header>
 
         {/* Mobile drawer */}

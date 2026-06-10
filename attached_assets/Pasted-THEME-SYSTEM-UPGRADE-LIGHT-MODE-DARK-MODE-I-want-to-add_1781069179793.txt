@@ -1,0 +1,218 @@
+THEME SYSTEM UPGRADE: LIGHT MODE + DARK MODE
+
+I want to add a complete Light Mode and Dark Mode system to my football application.
+
+GOAL
+
+Allow users to switch instantly between Light Mode and Dark Mode while preserving their preference across sessions.
+
+REQUIREMENTS
+
+1. THEME TOGGLE
+
+Add a theme switcher in the header/navbar.
+
+Display:
+
+🌙 Dark Mode
+☀️ Light Mode
+
+or a modern toggle switch.
+
+2. SAVE USER PREFERENCE
+
+Store selected theme in localStorage.
+
+Requirements:
+
+* Theme persists after page refresh.
+* Theme persists after logout/login.
+* Theme loads automatically on startup.
+
+3. SYSTEM DETECTION
+
+On first visit:
+
+* Detect user's OS preference.
+* Use prefers-color-scheme.
+* Default to user's system theme.
+
+4. DARK MODE (CURRENT STYLE)
+
+Keep existing football theme:
+
+Background:
+#0a0a0a
+
+Cards:
+#111111
+
+Borders:
+#1f1f1f
+
+Primary Green:
+#00b383
+
+Text:
+#ffffff
+
+Secondary Text:
+#b3b3b3
+
+5. LIGHT MODE DESIGN
+
+Create a clean modern sports-app theme.
+
+Background:
+#f8fafc
+
+Cards:
+#ffffff
+
+Borders:
+#e5e7eb
+
+Primary Green:
+#00b383
+
+Text:
+#111827
+
+Secondary Text:
+#6b7280
+
+Hover:
+#f3f4f6
+
+6. APPLY THEME EVERYWHERE
+
+Theme must affect:
+
+✓ Header
+✓ Sidebar
+✓ Top Navigation
+✓ League Buttons
+✓ Standings Table
+✓ Team Cards
+✓ Player Cards
+✓ Transfer Cards
+✓ News Cards
+✓ Search Bar
+✓ Modals
+✓ Dropdowns
+✓ Pagination
+✓ Footer
+✓ Loading Screens
+✓ Empty States
+
+No component should remain stuck in one theme.
+
+7. CSS VARIABLES
+
+Create centralized theme variables.
+
+Example:
+
+--bg-primary
+--bg-secondary
+--text-primary
+--text-secondary
+--border-color
+--card-bg
+--accent-green
+
+All UI components must use variables instead of hardcoded colors.
+
+8. TRANSITIONS
+
+Add smooth theme transition:
+
+transition:
+background-color 0.3s ease,
+color 0.3s ease,
+border-color 0.3s ease;
+
+Theme switching should feel premium.
+
+9. LEAGUE LOGOS
+
+League logos remain unchanged in both themes.
+
+Ensure logos remain visible:
+
+* No washed-out colors.
+* No inverted images.
+* No filter effects.
+
+10. TABLE IMPROVEMENTS
+
+Standings table should adapt automatically.
+
+Dark Mode:
+
+* Dark rows
+* Light text
+
+Light Mode:
+
+* White rows
+* Dark text
+
+Selected row should remain green-accented in both themes.
+
+11. ACCESSIBILITY
+
+Ensure:
+
+* WCAG-compliant contrast
+* Readable text
+* Visible hover states
+* Visible active states
+
+12. MOBILE SUPPORT
+
+Theme toggle must work on:
+
+* Desktop
+* Tablet
+* Mobile
+
+13. PERFORMANCE
+
+Avoid re-rendering the entire application unnecessarily.
+
+Use:
+
+* Theme Provider
+* Context API
+* Global State
+* CSS Variables
+
+14. IMPLEMENTATION
+
+Create:
+
+/context/ThemeContext.tsx
+
+/hooks/useTheme.ts
+
+/components/ThemeToggle.tsx
+
+15. FINAL VERIFICATION
+
+Verify:
+
+✓ Theme changes instantly
+✓ Theme persists after refresh
+✓ Theme persists after login
+✓ System theme detection works
+✓ Every page respects theme
+✓ No hardcoded colors remain
+✓ Smooth transitions work
+✓ Mobile support works
+
+Design Inspiration:
+FotMob + OneFootball + Sofascore
+
+Goal:
+Professional sports application with premium Light Mode and Dark Mode experience.

@@ -38,29 +38,31 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+/* ── LIGHT MODE (default) ── */
 :root {
-  --background: 142 10% 5%;
-  --foreground: 0 0% 98%;
-  --card: 142 10% 7%;
-  --card-foreground: 0 0% 98%;
-  --popover: 142 10% 7%;
-  --popover-foreground: 0 0% 98%;
-  --primary: 142 71% 45%;
-  --primary-foreground: 142 10% 5%;
-  --secondary: 142 10% 15%;
-  --secondary-foreground: 0 0% 98%;
-  --muted: 142 10% 15%;
-  --muted-foreground: 142 10% 65%;
-  --accent: 142 71% 45%;
-  --accent-foreground: 142 10% 5%;
+  --background: 210 40% 98%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+  --primary: 162 100% 35%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 14% 96%;
+  --secondary-foreground: 222 47% 11%;
+  --muted: 220 14% 96%;
+  --muted-foreground: 220 9% 46%;
+  --accent: 162 100% 35%;
+  --accent-foreground: 0 0% 100%;
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 98%;
-  --border: 142 10% 15%;
-  --input: 142 10% 15%;
-  --ring: 142 71% 45%;
+  --border: 220 13% 91%;
+  --input: 220 13% 91%;
+  --ring: 162 100% 35%;
   --radius: 0.5rem;
 }
 
+/* ── DARK MODE ── */
 .dark {
   --background: 142 10% 3%;
   --foreground: 0 0% 98%;
@@ -78,9 +80,29 @@
   --accent-foreground: 142 10% 5%;
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 98%;
-  --border: 142 10% 10%;
-  --input: 142 10% 10%;
+  --border: 142 10% 12%;
+  --input: 142 10% 12%;
   --ring: 142 71% 45%;
+}
+
+/* ── Smooth theme transitions ── */
+*,
+*::before,
+*::after {
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+/* Exclude elements where transitions look wrong */
+img,
+svg,
+video,
+canvas,
+[data-no-transition] {
+  transition: none !important;
 }
 
 @layer base {
