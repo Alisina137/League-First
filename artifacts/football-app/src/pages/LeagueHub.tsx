@@ -12,7 +12,7 @@ import {
 } from "../lib/liveApi";
 import { TableSkeleton, ErrorState, EmptyState } from "../components/Skeleton";
 import { UpcomingEmptyState } from "../components/UpcomingEmptyState";
-import { Trophy, Calendar, Users, TrendingUp, Shield, ChevronRight, Zap } from "lucide-react";
+import { Trophy, Calendar, Users, TrendingUp, Shield, Zap } from "lucide-react";
 
 interface LeagueHubData {
   competition: { slug: string; code: string; name: string; country: string; emblem: string };
@@ -76,56 +76,112 @@ function MatchRow({ match }: { match: LiveMatch }) {
   );
 }
 
-function KnockoutMatchCard({ match }: { match: LiveMatch }) {
+// ─── TOURNAMENT BRACKET ──────────────────────────────────────────
+const B_CARD_W = 188;
+const B_CARD_H = 80;
+const B_SLOT = 100;   // vertical slot height at the earliest (most-match) round
+const B_CONN = 30;    // width of connector SVG between columns
+
+function bracketWinner(match: LiveMatch): "home" | "away" | null {
+  if (match.homeScore === null || match.awayScore === null) return null;
+  if (match.homeScore > match.awayScore) return "home";
+  if (match.awayScore > match.homeScore) return "away";
+  return null;
+}
+
+function BracketTeamRow({ team, score, winning }: {
+  team: { name: string; shortName: string; crest: string };
+  score: number | null;
+  winning: boolean;
+}) {
+  return (
+    <div className={`flex items-center gap-1.5 px-1.5 py-[5px] rounded-sm transition-colors ${winning ? "bg-emerald-500/10 dark:bg-emerald-500/15" : ""}`}>
+      <img
+        src={team.crest} alt={team.shortName}
+        className="w-4 h-4 object-contain flex-shrink-0"
+        onError={e => { (e.target as HTMLImageElement).style.opacity = "0.3"; }}
+      />
+      <span className={`flex-1 text-[11px] truncate ${winning ? "font-bold text-foreground" : "font-medium text-muted-foreground"}`}>
+        {team.shortName || team.name}
+      </span>
+      <span className={`text-xs tabular-nums w-4 text-right font-bold ${winning ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`}>
+        {score !== null ? score : ""}
+      </span>
+    </div>
+  );
+}
+
+function BracketCard({ match, isFinal = false }: { match: LiveMatch; isFinal?: boolean }) {
   const isLive = match.status === "live";
   const isFinished = match.status === "finished";
-  const hasScore = match.homeScore !== null && match.awayScore !== null;
+  const w = bracketWinner(match);
   const date = new Date(match.matchDate);
-  const dateStr = date.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
+  const dateStr = date.toLocaleDateString([], { month: "short", day: "numeric" });
   const timeStr = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-
-  const homeWins = hasScore && match.homeScore! > match.awayScore!;
-  const awayWins = hasScore && match.awayScore! > match.homeScore!;
+  const cardW = isFinal ? 212 : B_CARD_W;
 
   return (
-    <div className={`bg-card border border-border rounded-xl p-3 text-sm transition-colors hover:border-primary/40 ${isLive ? "border-primary/60 bg-primary/5" : ""}`}>
-      <div className="flex items-center justify-between mb-2.5">
-        {isLive ? (
-          <span className="flex items-center gap-1 text-[10px] font-bold text-primary uppercase tracking-wide">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-            {match.minute ? `${match.minute}'` : "Live"}
-          </span>
-        ) : isFinished ? (
-          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">Full Time</span>
-        ) : (
-          <span className="text-[10px] text-muted-foreground">{dateStr}</span>
-        )}
-        {!isLive && !isFinished && (
-          <span className="text-[10px] text-muted-foreground">{timeStr}</span>
-        )}
-      </div>
-
-      <div className="space-y-1.5">
-        <div className={`flex items-center gap-2 ${homeWins ? "opacity-100" : awayWins ? "opacity-50" : "opacity-100"}`}>
-          <img src={match.homeTeam.crest} alt={match.homeTeam.name} className="w-5 h-5 object-contain flex-shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
-          <span className={`flex-1 truncate text-xs ${homeWins ? "font-bold text-foreground" : "font-medium"}`}>{match.homeTeam.name}</span>
-          {hasScore && (
-            <span className={`tabular-nums font-bold text-sm w-5 text-right ${homeWins ? "text-foreground" : "text-muted-foreground"}`}>{match.homeScore}</span>
-          )}
+    <div style={{ width: cardW }} className={`rounded-lg border overflow-hidden shadow-sm transition-all duration-150
+      ${isLive ? "border-primary/60 shadow-primary/10 shadow-md" : isFinal && isFinished && w ? "border-yellow-400/60 shadow-yellow-500/10 shadow-md" : "border-border hover:border-primary/40"}`}>
+      {isLive ? (
+        <div className="bg-primary flex items-center justify-center gap-1 py-[3px]">
+          <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+          <span className="text-[10px] font-bold text-white tracking-wide">LIVE{match.minute ? ` ${match.minute}'` : ""}</span>
         </div>
-        <div className={`flex items-center gap-2 ${awayWins ? "opacity-100" : homeWins ? "opacity-50" : "opacity-100"}`}>
-          <img src={match.awayTeam.crest} alt={match.awayTeam.name} className="w-5 h-5 object-contain flex-shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
-          <span className={`flex-1 truncate text-xs ${awayWins ? "font-bold text-foreground" : "font-medium"}`}>{match.awayTeam.name}</span>
-          {hasScore && (
-            <span className={`tabular-nums font-bold text-sm w-5 text-right ${awayWins ? "text-foreground" : "text-muted-foreground"}`}>{match.awayScore}</span>
-          )}
+      ) : isFinal && isFinished && w ? (
+        <div className="bg-yellow-400/15 border-b border-yellow-400/30 flex items-center justify-center gap-1 py-[3px]">
+          <span className="text-[10px] font-bold text-yellow-600 dark:text-yellow-400">🏆 CHAMPION</span>
         </div>
+      ) : !isFinished ? (
+        <div className="bg-muted/50 border-b border-border/40 flex items-center justify-center py-[3px]">
+          <span className="text-[10px] text-muted-foreground">{dateStr} · {timeStr}</span>
+        </div>
+      ) : null}
+      <div className="bg-card p-1">
+        <BracketTeamRow team={match.homeTeam} score={match.homeScore} winning={w === "home"} />
+        <div className="mx-1.5 h-px bg-border/60" />
+        <BracketTeamRow team={match.awayTeam} score={match.awayScore} winning={w === "away"} />
       </div>
-
-      {match.venue && (
-        <p className="text-[10px] text-muted-foreground mt-2 truncate">{match.venue}</p>
+      {isFinal && match.venue && isFinished && (
+        <div className="bg-card pb-1.5 px-2 text-center border-t border-border/30">
+          <span className="text-[10px] text-muted-foreground">{match.venue}</span>
+        </div>
       )}
     </div>
+  );
+}
+
+function BracketConnector({ numParents, childSlot, totalH, side }: {
+  numParents: number; childSlot: number; totalH: number; side: "left" | "right";
+}) {
+  const mid = B_CONN / 2;
+  const segs: string[] = [];
+  for (let q = 0; q < numParents; q++) {
+    const pCY  = (q + 0.5) * childSlot * 2;
+    const c1CY = (2 * q + 0.5) * childSlot;
+    const c2CY = (2 * q + 1.5) * childSlot;
+    if (side === "left") {
+      segs.push(`M0,${c1CY}H${mid}`, `M0,${c2CY}H${mid}`, `M${mid},${c1CY}V${c2CY}`, `M${mid},${pCY}H${B_CONN}`);
+    } else {
+      segs.push(`M${B_CONN},${c1CY}H${mid}`, `M${B_CONN},${c2CY}H${mid}`, `M${mid},${c1CY}V${c2CY}`, `M${mid},${pCY}H0`);
+    }
+  }
+  return (
+    <svg width={B_CONN} height={totalH} className="flex-shrink-0">
+      {segs.map((d, i) => (
+        <path key={i} d={d} stroke="hsl(var(--border))" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      ))}
+    </svg>
+  );
+}
+
+function FinalConnector({ totalH, side }: { totalH: number; side: "left" | "right" }) {
+  const cy = totalH / 2;
+  return (
+    <svg width={B_CONN} height={totalH} className="flex-shrink-0">
+      <line x1={side === "left" ? 0 : B_CONN} y1={cy} x2={side === "left" ? B_CONN : 0} y2={cy}
+        stroke="hsl(var(--border))" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
   );
 }
 
@@ -140,20 +196,49 @@ function KnockoutView({ slug }: { slug: string }) {
 
   if (isLoading) return <TableSkeleton rows={8} cols={4} />;
   if (isError) return <ErrorState message="Knockout data unavailable" onRetry={() => refetch()} />;
+
   if (!data || data.rounds.length === 0) {
     return (
       <div className="bg-card border border-border rounded-xl p-10 text-center space-y-3">
         <div className="text-4xl">🏆</div>
         <h3 className="font-bold text-lg">No Knockout Stage Data</h3>
         <p className="text-muted-foreground text-sm max-w-sm mx-auto">
-          Knockout stage matches aren't available yet. They will appear here once the group stage is complete and knockout fixtures are confirmed.
+          Knockout fixtures will appear here once the group stage is complete and the draw has been made.
         </p>
       </div>
     );
   }
 
+  const rounds          = data.rounds;
+  const finalRound      = rounds[rounds.length - 1];
+  // Third-place is a side match — separate it from the main bracket tree
+  const thirdPlaceRound = rounds.slice(0, -1).find(r => r.stage === "THIRD_PLACE");
+  const preRounds       = rounds.slice(0, -1).filter(r => r.stage !== "THIRD_PLACE");
+  const numLevels       = preRounds.length;
+
+  // Split each pre-final round into left / right halves
+  const leftByLevel  = preRounds.map(r => r.matches.slice(0, Math.ceil(r.matches.length / 2)));
+  const rightByLevel = preRounds.map(r => r.matches.slice(Math.ceil(r.matches.length / 2)));
+
+  // Total bracket height is driven by the earliest (most-match) round
+  const maxSide = Math.max(leftByLevel[0]?.length ?? 0, rightByLevel[0]?.length ?? 0, 1);
+  const totalH  = maxSide * B_SLOT;
+
+  // Slot height grows by ×2 each level closer to Final
+  const getSlot = (li: number) => B_SLOT * Math.pow(2, li);
+  // Vertical position (top) of a match card within its column
+  const getTop  = (mi: number, li: number) => { const s = getSlot(li); return mi * s + (s - B_CARD_H) / 2; };
+
+  const RoundLabel = ({ label, gold }: { label: string; gold?: boolean }) => (
+    <div className="h-7 flex items-end justify-center pb-1">
+      <span className={`text-[10px] font-bold uppercase tracking-widest whitespace-nowrap ${gold ? "text-yellow-600 dark:text-yellow-400" : "text-muted-foreground"}`}>
+        {label}
+      </span>
+    </div>
+  );
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {data.isLive && (
         <div className="flex items-center gap-2 text-primary text-sm font-semibold">
           <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
@@ -161,37 +246,110 @@ function KnockoutView({ slug }: { slug: string }) {
         </div>
       )}
 
-      <div className="overflow-x-auto pb-4">
-        <div className="flex items-start gap-3 min-w-max">
-          {data.rounds.map((round, roundIdx) => (
-            <div key={round.stage} className="flex items-start gap-3">
-              <div className="flex flex-col gap-2" style={{ width: "220px" }}>
-                <div className="bg-primary/10 border border-primary/20 rounded-lg px-3 py-2 text-center">
-                  <span className="text-sm font-bold text-primary block">{round.label}</span>
-                  <span className="text-[11px] text-muted-foreground">
-                    {round.matches.length} {round.matches.length === 1 ? "match" : "matches"}
-                  </span>
+      <div className="overflow-x-auto pb-3 -mx-1 px-1">
+        <div className="flex items-start" style={{ minWidth: "max-content" }}>
+
+          {/* ── LEFT SIDE (R16 → QF → SF) ── */}
+          {leftByLevel.map((matches, li) => {
+            const slot   = getSlot(li);
+            const isLast = li === numLevels - 1;
+            return (
+              <div key={`L${li}`} className="flex items-start flex-shrink-0">
+                <div className="flex flex-col flex-shrink-0" style={{ width: B_CARD_W }}>
+                  <RoundLabel label={preRounds[li].label} />
+                  <div className="relative" style={{ height: totalH }}>
+                    {matches.map((m, mi) => (
+                      <div key={m.id} className="absolute" style={{ top: getTop(mi, li), width: B_CARD_W }}>
+                        <BracketCard match={m} />
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex flex-col gap-2">
-                  {round.matches.map(match => (
-                    <KnockoutMatchCard key={match.id} match={match} />
-                  ))}
+                <div className="flex flex-col flex-shrink-0" style={{ width: B_CONN }}>
+                  <div className="h-7" />
+                  {isLast
+                    ? <FinalConnector totalH={totalH} side="left" />
+                    : <BracketConnector numParents={leftByLevel[li + 1]?.length ?? 0} childSlot={slot} totalH={totalH} side="left" />
+                  }
                 </div>
               </div>
+            );
+          })}
 
-              {roundIdx < data.rounds.length - 1 && (
-                <div className="flex items-center self-center mt-9 flex-shrink-0">
-                  <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                </div>
-              )}
+          {/* ── FINAL (center) ── */}
+          <div className="flex flex-col flex-shrink-0 items-center" style={{ width: 212 }}>
+            <RoundLabel label="🏆 Final" gold />
+            <div className="flex items-center justify-center" style={{ height: totalH }}>
+              {finalRound.matches[0]
+                ? <BracketCard match={finalRound.matches[0]} isFinal />
+                : (
+                  <div className="rounded-lg border-2 border-dashed border-border/50 flex items-center justify-center"
+                    style={{ width: 212, height: B_CARD_H }}>
+                    <span className="text-xs text-muted-foreground">TBD</span>
+                  </div>
+                )
+              }
             </div>
-          ))}
+          </div>
+
+          {/* ── RIGHT SIDE (SF → QF → R16) ── */}
+          {Array.from({ length: numLevels }, (_, revIdx) => {
+            const li      = numLevels - 1 - revIdx;
+            const matches = rightByLevel[li];
+            const slot    = getSlot(li);
+            const isFirst = revIdx === 0;
+            return (
+              <div key={`R${li}`} className="flex items-start flex-shrink-0">
+                <div className="flex flex-col flex-shrink-0" style={{ width: B_CONN }}>
+                  <div className="h-7" />
+                  {isFirst
+                    ? <FinalConnector totalH={totalH} side="right" />
+                    : <BracketConnector
+                        numParents={rightByLevel[numLevels - revIdx]?.length ?? 0}
+                        childSlot={slot}
+                        totalH={totalH}
+                        side="right"
+                      />
+                  }
+                </div>
+                <div className="flex flex-col flex-shrink-0" style={{ width: B_CARD_W }}>
+                  <RoundLabel label={preRounds[li].label} />
+                  <div className="relative" style={{ height: totalH }}>
+                    {matches.map((m, mi) => (
+                      <div key={m.id} className="absolute" style={{ top: getTop(mi, li), width: B_CARD_W }}>
+                        <BracketCard match={m} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-4 text-xs text-muted-foreground pt-2">
-        <span className="flex items-center gap-1.5"><span className="font-bold text-foreground">Bold score</span> = Winner / Advancing</span>
-        <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-primary animate-pulse inline-block" /> Live match</span>
+      {/* ── THIRD PLACE (if present) ── */}
+      {thirdPlaceRound && thirdPlaceRound.matches[0] && (
+        <div className="flex items-center gap-3 pt-1">
+          <div className="flex flex-col items-start gap-1">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              {thirdPlaceRound.label}
+            </span>
+            <BracketCard match={thirdPlaceRound.matches[0]} />
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-5 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded bg-emerald-500/20 border border-emerald-500/50 inline-block" />
+          Winner / advancing
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-primary animate-pulse inline-block" />
+          Live match
+        </span>
       </div>
     </div>
   );

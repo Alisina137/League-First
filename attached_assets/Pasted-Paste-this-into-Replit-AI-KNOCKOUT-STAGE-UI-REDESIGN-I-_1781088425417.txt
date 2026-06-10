@@ -1,0 +1,304 @@
+Paste this into Replit AI:
+
+KNOCKOUT STAGE UI REDESIGN
+
+I want to completely redesign the Knockout Stage page.
+
+Use a professional tournament bracket layout similar to:
+
+* FIFA World Cup
+* UEFA Champions League
+* UEFA Europa League
+
+The design should resemble modern visual brackets where rounds progress toward a central Final match.
+
+---
+
+## LAYOUT STRUCTURE
+
+Create a full tournament bracket.
+
+Example:
+
+Round of 16
+→
+Quarter Finals
+→
+Semi Finals
+→
+FINAL
+→
+Semi Finals
+→
+Quarter Finals
+→
+Round of 16
+
+The Final should appear in the center.
+
+The left side contains one half of the bracket.
+
+The right side contains the other half.
+
+---
+
+## BRACKET COLUMNS
+
+World Cup:
+
+Round of 16
+Quarter Finals
+Semi Finals
+FINAL
+
+Champions League:
+
+Round of 16
+Quarter Finals
+Semi Finals
+FINAL
+
+Europa League:
+
+Knockout Playoff
+Round of 16
+Quarter Finals
+Semi Finals
+FINAL
+
+The number of columns should be generated dynamically based on API data.
+
+---
+
+## MATCH CARDS
+
+Each bracket match should display:
+
+* Team 1 logo
+
+* Team 1 name
+
+* Team 1 score
+
+* Team 2 logo
+
+* Team 2 name
+
+* Team 2 score
+
+Example:
+
+[Real Madrid logo]
+Real Madrid      2
+
+[Manchester City logo]
+Manchester City  1
+
+---
+
+## WINNER HIGHLIGHT
+
+Winning teams should be visually highlighted.
+
+Examples:
+
+* Green accent border
+* Bold team name
+* Trophy icon for champion
+
+---
+
+## FINAL SECTION
+
+Center the Final match.
+
+Display:
+
+FINAL
+
+Date
+
+Stadium
+
+Teams
+
+Score
+
+Winner
+
+Example:
+
+FINAL
+
+July 15, 2026
+
+Real Madrid 2
+Manchester City 1
+
+Champion:
+Real Madrid
+
+---
+
+## BRACKET CONNECTION LINES
+
+Draw connecting lines between rounds.
+
+Round of 16
+│
+└── Quarter Final
+
+Quarter Final
+│
+└── Semi Final
+
+Semi Final
+│
+└── Final
+
+The progression should be visually obvious.
+
+---
+
+## RESPONSIVE DESIGN
+
+Desktop:
+
+Show full bracket.
+
+Tablet:
+
+Reduce spacing.
+
+Mobile:
+
+Horizontal scroll.
+
+Users should be able to swipe through rounds.
+
+---
+
+## API DATA
+
+Generate the bracket entirely from API data.
+
+Do NOT hardcode:
+
+* Teams
+* Results
+* Winners
+* Rounds
+
+Everything should come from the tournament API.
+
+---
+
+## LIVE MATCHES
+
+If a knockout match is live:
+
+Show:
+
+LIVE
+
+Current minute
+
+Live score
+
+Example:
+
+LIVE 67'
+
+Real Madrid 1
+Bayern Munich 1
+
+---
+
+## COMPLETED MATCHES
+
+Show:
+
+Final Score
+
+Aggregate Score if applicable
+
+Example:
+
+Real Madrid 3
+Arsenal 1
+
+Aggregate:
+5-2
+
+---
+
+## THEME SUPPORT
+
+Light Mode:
+
+Clean white cards
+
+Dark text
+
+Dark Mode:
+
+Dark cards
+
+Light text
+
+Maintain consistent bracket lines in both themes.
+
+---
+
+## ANIMATIONS
+
+Add:
+
+* Smooth hover effects
+* Winner highlight animations
+* Expandable match details
+
+---
+
+## VISUAL STYLE
+
+Use the uploaded reference image as inspiration:
+
+✓ Final centered
+✓ Left and right tournament paths
+✓ Visual progression toward the final
+✓ Compact match cards
+✓ Professional tournament appearance
+
+However improve it with:
+
+* Modern spacing
+* Better typography
+* Team logos
+* Dark mode support
+* Mobile responsiveness
+
+---
+
+## FINAL VERIFICATION
+
+Verify:
+
+✓ World Cup brackets render correctly
+✓ Champions League brackets render correctly
+✓ Europa League brackets render correctly
+✓ Final appears in center
+✓ Bracket lines connect rounds
+✓ Winners highlighted
+✓ Mobile scrolling works
+✓ Dark Mode works
+✓ Light Mode works
+✓ API-driven bracket generation works
+
+IMPORTANT
+
+Do not display knockout matches as simple cards in a list.
+
+Use a true tournament bracket layout with rounds progressing toward a central Final match.
+
+This will give you a much more professional bracket view, similar to what users expect from World Cup and Champions League tournament pages rather than a simple fixture list.
