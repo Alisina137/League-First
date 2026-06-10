@@ -28,7 +28,7 @@ interface LeagueHubData {
 type Tab = "overview" | "groups" | "knockout" | "matches" | "teams";
 
 const TOURNAMENT_SLUGS = new Set(["champions-league", "europa-league", "world-cup"]);
-const UNSUPPORTED_SLUGS = new Set(["saudi-pro-league", "mls"]);
+const UNSUPPORTED_SLUGS = new Set(["saudi-pro-league", "mls", "europa-league"]);
 
 const TAB_CONFIG: { id: Tab; label: string }[] = [
   { id: "overview",  label: "Overview"    },
@@ -405,7 +405,9 @@ export default function LeagueHub() {
           <div className="text-4xl">⚽</div>
           <h2 className="text-xl font-bold">Live data not available</h2>
           <p className="text-muted-foreground text-sm max-w-sm mx-auto">
-            {leagueName} is not covered by the free tier of football-data.org. Live standings, matches and scorers are only available for the top 5 European leagues, Champions League, Europa League, and FIFA World Cup.
+            {leagueName === "UEFA Europa League"
+              ? "UEFA Europa League data requires a paid football-data.org plan. Live data is available for the top 5 European leagues, UEFA Champions League, and FIFA World Cup."
+              : `${leagueName} is not covered by the current data plan. Live standings, matches and scorers are available for the top 5 European leagues, Champions League, and FIFA World Cup.`}
           </p>
           <Link href="/standings" className="inline-block mt-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity">
             View Supported Leagues

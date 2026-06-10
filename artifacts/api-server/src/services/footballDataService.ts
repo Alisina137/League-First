@@ -8,6 +8,13 @@ function getToken(): string {
   return token;
 }
 
+export class ForbiddenError extends Error {
+  constructor(path: string) {
+    super(`football-data.org plan does not include access to ${path}`);
+    this.name = "ForbiddenError";
+  }
+}
+
 async function apiFetch(path: string): Promise<unknown> {
   const url = `${BASE_URL}${path}`;
   const res = await fetch(url, {
@@ -15,6 +22,9 @@ async function apiFetch(path: string): Promise<unknown> {
   });
   if (res.status === 429) {
     throw new Error("Rate limited by football-data.org");
+  }
+  if (res.status === 403) {
+    throw new ForbiddenError(path);
   }
   if (!res.ok) {
     throw new Error(`football-data.org ${res.status} for ${path}`);
@@ -211,6 +221,9 @@ export async function getStandings(slug: string): Promise<LiveStanding[]> {
       }
     }
     return allRows;
+  }).catch((err: unknown) => {
+    if (err instanceof ForbiddenError) { logger.warn({ slug }, "Standings not available on current plan"); return [] as LiveStanding[]; }
+    throw err;
   });
 }
 
@@ -252,6 +265,9 @@ export async function getMatches(slug: string, status?: string): Promise<LiveMat
       leagueSlug: slug,
       leagueEmblem: comp.emblem,
     }));
+  }).catch((err: unknown) => {
+    if (err instanceof ForbiddenError) { logger.warn({ slug }, "Matches not available on current plan"); return [] as LiveMatch[]; }
+    throw err;
   });
 }
 
@@ -358,6 +374,9 @@ export async function getScorers(slug: string): Promise<LiveScorer[]> {
       leagueSlug: slug,
       leagueName: comp.name,
     }));
+  }).catch((err: unknown) => {
+    if (err instanceof ForbiddenError) { logger.warn({ slug }, "Scorers not available on current plan"); return [] as LiveScorer[]; }
+    throw err;
   });
 }
 
@@ -391,6 +410,9 @@ export async function getTeams(slug: string): Promise<LiveTeam[]> {
       leagueName: comp.name,
       squadSize: t.squad?.length ?? 0,
     }));
+  }).catch((err: unknown) => {
+    if (err instanceof ForbiddenError) { logger.warn({ slug }, "Teams not available on current plan"); return [] as LiveTeam[]; }
+    throw err;
   });
 }
 
