@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch, COMPETITIONS, type LiveMatch } from "../lib/liveApi";
 import { MatchCardSkeleton, ErrorState, EmptyState } from "../components/Skeleton";
+import { UpcomingEmptyState } from "../components/UpcomingEmptyState";
 
 type StatusFilter = "all" | "live" | "upcoming" | "finished";
 
@@ -135,7 +136,11 @@ export default function Matches() {
       ) : isError ? (
         <ErrorState message="Matches currently unavailable" onRetry={() => refetch()} />
       ) : !data || data.length === 0 ? (
-        <EmptyState message={status === "live" ? "No live matches right now" : "No matches found"} />
+        (status === "upcoming" || status === "all") ? (
+          <UpcomingEmptyState context="global" hasStarted={true} />
+        ) : (
+          <EmptyState message={status === "live" ? "No live matches right now" : "No matches found for this filter"} />
+        )
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {data.map((match) => <MatchCard key={match.id} match={match} />)}

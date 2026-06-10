@@ -2,12 +2,15 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { apiFetch, COMPETITIONS, type LiveMatch, type LiveStanding, type Competition } from "../lib/liveApi";
 import { MatchCardSkeleton, Skeleton, ErrorState } from "../components/Skeleton";
+import { UpcomingEmptyState } from "../components/UpcomingEmptyState";
 
 interface LiveHomepage {
   liveMatches: LiveMatch[];
   upcomingMatches: LiveMatch[];
   featuredStandings: LiveStanding[];
   competitions: Competition[];
+  nextFixtureDate: string | null;
+  hasStarted: boolean;
 }
 
 function MatchCard({ match }: { match: LiveMatch }) {
@@ -118,7 +121,7 @@ export default function Home() {
     return <ErrorState message="Could not load homepage data" onRetry={() => refetch()} />;
   }
 
-  const { liveMatches = [], upcomingMatches = [], featuredStandings = [] } = data ?? {};
+  const { liveMatches = [], upcomingMatches = [], featuredStandings = [], nextFixtureDate = null, hasStarted = true } = data ?? {};
 
   return (
     <div className="space-y-10 pb-10">
@@ -155,9 +158,11 @@ export default function Home() {
               {upcomingMatches.slice(0, 12).map((m) => <MatchCard key={m.id} match={m} />)}
             </div>
           ) : (
-            <div className="text-muted-foreground p-8 bg-card rounded-xl border border-border text-center">
-              No upcoming fixtures scheduled
-            </div>
+            <UpcomingEmptyState
+              nextFixtureDate={nextFixtureDate}
+              hasStarted={hasStarted}
+              context="global"
+            />
           )}
         </div>
 
