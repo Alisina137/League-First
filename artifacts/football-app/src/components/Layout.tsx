@@ -13,34 +13,83 @@ import {
   X,
 } from "lucide-react";
 import { useState } from "react";
-
-const POPULAR_LEAGUES = [
-  { name: "Premier League", slug: "premier-league", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿" },
-  { name: "La Liga", slug: "la-liga", flag: "🇪🇸" },
-  { name: "Serie A", slug: "serie-a", flag: "🇮🇹" },
-  { name: "Bundesliga", slug: "bundesliga", flag: "🇩🇪" },
-  { name: "Ligue 1", slug: "ligue-1", flag: "🇫🇷" },
-  { name: "Champions League", slug: "champions-league", flag: "🏆" },
-  { name: "Europa League", slug: "europa-league", flag: "🏆" },
-  { name: "Saudi Pro League", slug: "saudi-pro-league", flag: "🇸🇦" },
-  { name: "MLS", slug: "mls", flag: "🇺🇸" },
-  { name: "World Cup", slug: "world-cup", flag: "🌍" },
-];
+import { LEAGUE_LOGOS } from "../data/leagueLogos";
 
 const TOP_TABS = [
   { label: "Standings", href: "/standings", icon: Trophy },
-  { label: "Teams", href: "/teams", icon: Users },
-  { label: "Players", href: "/players", icon: User },
+  { label: "Teams",     href: "/teams",     icon: Users },
+  { label: "Players",   href: "/players",   icon: User },
   { label: "Transfers", href: "/transfers", icon: ArrowRightLeft },
-  { label: "News", href: "/news", icon: Newspaper },
+  { label: "News",      href: "/news",      icon: Newspaper },
   { label: "Bookmarks", href: "/bookmarks", icon: Bookmark },
 ];
 
 const SIDEBAR_NAV = [
-  { label: "Home", href: "/", icon: Home },
-  { label: "Matches", href: "/matches", icon: Calendar },
-  { label: "Settings", href: "/settings", icon: Settings },
+  { label: "Home",     href: "/",        icon: Home },
+  { label: "Matches",  href: "/matches", icon: Calendar },
+  { label: "Settings", href: "/settings",icon: Settings },
 ];
+
+function LeagueLogo({
+  src,
+  name,
+  active,
+}: {
+  src: string;
+  name: string;
+  active: boolean;
+}) {
+  const [errored, setErrored] = useState(false);
+  return errored ? (
+    <span className="w-6 h-6 flex items-center justify-center text-base flex-shrink-0">⚽</span>
+  ) : (
+    <img
+      src={src}
+      alt={name}
+      loading="lazy"
+      onError={() => setErrored(true)}
+      className={`w-6 h-6 object-contain flex-shrink-0 transition-transform duration-200 ${
+        active ? "scale-110" : "group-hover:scale-110"
+      }`}
+      style={{ imageRendering: "crisp-edges" }}
+    />
+  );
+}
+
+function LeagueList({
+  onNavigate,
+  location,
+}: {
+  onNavigate?: () => void;
+  location: string;
+}) {
+  return (
+    <div className="space-y-0.5">
+      {LEAGUE_LOGOS.map((league) => {
+        const href = `/league/${league.slug}`;
+        const active = location.startsWith(href);
+        return (
+          <Link
+            key={league.slug}
+            href={href}
+            onClick={onNavigate}
+            className={`group flex items-center gap-2.5 px-3 py-2 rounded-md transition-all duration-150 text-sm ${
+              active
+                ? "bg-primary/15 text-primary font-semibold"
+                : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+            }`}
+          >
+            <LeagueLogo src={league.logo} name={league.name} active={active} />
+            <span className="truncate">{league.name}</span>
+            {active && (
+              <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
+            )}
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
@@ -51,9 +100,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden">
-      {/* Desktop Sidebar — leagues only */}
+
+      {/* ── Desktop Sidebar ── */}
       <aside className="hidden md:flex w-56 flex-col border-r border-border bg-card flex-shrink-0">
-        {/* Logo */}
         <div className="p-4 border-b border-border">
           <Link href="/" className="flex items-center gap-2 font-bold text-xl text-primary">
             <Trophy className="w-5 h-5" />
@@ -83,39 +132,17 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             })}
           </div>
 
-          {/* Leagues */}
+          {/* Competitions */}
           <div>
             <p className="px-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">
               Competitions
             </p>
-            <div className="space-y-0.5">
-              {POPULAR_LEAGUES.map((league) => {
-                const href = `/league/${league.slug}`;
-                const active = location.startsWith(href);
-                return (
-                  <Link
-                    key={league.slug}
-                    href={href}
-                    className={`flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors text-sm group ${
-                      active
-                        ? "bg-primary/15 text-primary font-semibold"
-                        : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                    }`}
-                  >
-                    <span className="text-base leading-none flex-shrink-0">{league.flag}</span>
-                    <span className="truncate">{league.name}</span>
-                    {active && (
-                      <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
-                    )}
-                  </Link>
-                );
-              })}
-            </div>
+            <LeagueList location={location} />
           </div>
         </div>
       </aside>
 
-      {/* Main column */}
+      {/* ── Main column ── */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
 
         {/* Mobile header */}
@@ -179,25 +206,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   <p className="px-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">
                     Competitions
                   </p>
-                  <div className="space-y-0.5">
-                    {POPULAR_LEAGUES.map((league) => {
-                      const href = `/league/${league.slug}`;
-                      const active = location.startsWith(href);
-                      return (
-                        <Link
-                          key={league.slug}
-                          href={href}
-                          onClick={() => setMobileMenuOpen(false)}
-                          className={`flex items-center gap-2.5 px-3 py-2.5 rounded-md transition-colors text-sm ${
-                            active ? "bg-primary/15 text-primary font-semibold" : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                          }`}
-                        >
-                          <span className="text-base">{league.flag}</span>
-                          <span>{league.name}</span>
-                        </Link>
-                      );
-                    })}
-                  </div>
+                  <LeagueList
+                    location={location}
+                    onNavigate={() => setMobileMenuOpen(false)}
+                  />
                 </div>
               </div>
             </aside>
@@ -210,7 +222,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             className="flex items-center gap-1 px-3 md:px-4 py-2.5 overflow-x-auto"
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
-            <style>{`.tab-scroll::-webkit-scrollbar { display: none; }`}</style>
             {TOP_TABS.map((tab) => {
               const active = isTabActive(tab.href);
               return (
