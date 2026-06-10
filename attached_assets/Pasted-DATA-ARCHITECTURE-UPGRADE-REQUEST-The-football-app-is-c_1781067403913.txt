@@ -1,0 +1,200 @@
+DATA ARCHITECTURE UPGRADE REQUEST
+
+The football app is currently showing static/mock data. I want the entire application converted to use real-time live football data from APIs.
+
+GOAL:
+Replace ALL hardcoded, mock, demo, fallback, and sample data with live API-driven data.
+
+REQUIREMENTS
+
+1. REAL DATA ONLY
+
+* Remove all static arrays and mock objects.
+* Do not display fake standings, teams, players, transfers, or news.
+* If API data is unavailable, show:
+  "Data currently unavailable"
+  instead of fake content.
+
+2. STANDINGS
+   Fetch real league tables including:
+
+* Position
+* Team logo
+* Team name
+* Matches played
+* Wins
+* Draws
+* Losses
+* Goals For
+* Goals Against
+* Goal Difference
+* Points
+
+Supported competitions:
+
+* Premier League
+* La Liga
+* Serie A
+* Bundesliga
+* Ligue 1
+* UEFA Champions League
+* UEFA Europa League
+* Saudi Pro League
+* MLS
+* FIFA World Cup
+
+3. TEAMS PAGE
+   Fetch:
+
+* Team logo
+* Team name
+* Stadium
+* Coach
+* League
+* Recent form
+* Squad size
+
+4. PLAYERS PAGE
+   Fetch:
+
+* Player photo
+* Name
+* Age
+* Nationality
+* Position
+* Team
+* Goals
+* Assists
+* Appearances
+
+5. TRANSFERS PAGE
+   Fetch:
+
+* Player
+* From club
+* To club
+* Transfer fee
+* Transfer date
+* Loan/permanent status
+
+6. NEWS PAGE
+   Use real football news feeds.
+   Display:
+
+* Headline
+* Image
+* Source
+* Publish date
+* Link to full article
+
+7. LIVE MATCHES
+   Add a live scores section:
+
+* Current score
+* Match minute
+* Match status
+* Competition
+* Team logos
+
+8. AUTO REFRESH
+   Implement automatic refresh:
+
+* Live scores every 60 seconds
+* Standings every 15 minutes
+* Transfers every 6 hours
+* News every 30 minutes
+
+9. CACHING
+   Use caching to reduce API usage:
+
+* Local cache
+* Background refresh
+* Stale-while-revalidate strategy
+
+10. LOADING STATES
+    Every page must show:
+
+* Loading skeletons
+* Error states
+* Empty states
+
+11. API INTEGRATION LAYER
+
+Create a dedicated service layer:
+
+/services
+footballApi.ts
+standingsApi.ts
+teamsApi.ts
+playersApi.ts
+transfersApi.ts
+newsApi.ts
+
+No API logic should exist inside UI components.
+
+12. IMAGE HANDLING
+
+Always display:
+
+* Team logos
+* League logos
+* Player photos
+* News thumbnails
+
+Use image fallbacks only if image URL is missing.
+
+13. DATA VALIDATION
+
+Validate all API responses before rendering.
+Prevent:
+
+* Undefined values
+* Broken tables
+* Empty cards
+* Duplicate records
+
+14. DUPLICATE PREVENTION
+
+Ensure:
+
+* No duplicate teams
+* No duplicate players
+* No duplicate news articles
+* No duplicate transfers
+
+15. PERFORMANCE
+
+Use:
+
+* Lazy loading
+* Pagination
+* Infinite scrolling where appropriate
+* Request deduplication
+
+16. CODE REVIEW
+
+Search the entire project and identify:
+
+* Mock data
+* Hardcoded football data
+* Sample arrays
+* Placeholder standings
+* Demo content
+
+Replace every occurrence with live API data.
+
+17. FINAL VERIFICATION
+
+After implementation verify:
+✓ Standings change when API changes
+✓ Teams are fetched dynamically
+✓ Players are fetched dynamically
+✓ Transfers are fetched dynamically
+✓ News is fetched dynamically
+✓ Logos load correctly
+✓ No hardcoded football data remains anywhere in the project
+
+Priority:
+REAL DATA > UI DESIGN
+
+If a choice must be made, always prefer accurate live data over visual appearance.
