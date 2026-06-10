@@ -36,18 +36,24 @@ router.get("/live/league-hub", async (req, res): Promise<void> => {
     const matchesData   = allMatches.status === "fulfilled" ? allMatches.value : [];
     const scorersData   = scorers.status === "fulfilled" ? scorers.value : [];
 
-    const now = Date.now();
-    const recentMatches   = matchesData
+    const recentMatches = matchesData
       .filter(m => m.status === "finished")
       .sort((a, b) => new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime())
       .slice(0, 10);
 
-    const upcomingMatches = matchesData
+    const allUpcomingSorted = matchesData
       .filter(m => m.status === "upcoming")
-      .sort((a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime())
-      .slice(0, 10);
+      .sort((a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime());
+
+    const upcomingMatches = allUpcomingSorted.slice(0, 10);
+    const nextFixtureDate: string | null = allUpcomingSorted[0]?.matchDate ?? null;
 
     const liveMatches = matchesData.filter(m => m.status === "live");
+
+    const hasStarted =
+      recentMatches.length > 0 ||
+      liveMatches.length > 0 ||
+      matchesData.some(m => m.status === "finished" || m.status === "live");
 
     req.log.info(
       {
@@ -59,6 +65,8 @@ router.get("/live/league-hub", async (req, res): Promise<void> => {
         upcomingMatches: upcomingMatches.length,
         recentMatches: recentMatches.length,
         topScorers: scorersData.length,
+        nextFixtureDate,
+        hasStarted,
       },
       "League hub data served"
     );
@@ -76,6 +84,8 @@ router.get("/live/league-hub", async (req, res): Promise<void> => {
       upcomingMatches,
       recentMatches,
       scorers: scorersData,
+      nextFixtureDate,
+      hasStarted,
     });
   } catch (err) {
     req.log.error({ err }, "Failed to fetch league hub data");

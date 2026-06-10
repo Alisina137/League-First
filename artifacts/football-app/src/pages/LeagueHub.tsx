@@ -20,6 +20,8 @@ interface LeagueHubData {
   upcomingMatches: LiveMatch[];
   recentMatches: LiveMatch[];
   scorers: LiveScorer[];
+  nextFixtureDate: string | null;
+  hasStarted: boolean;
 }
 
 type Tab = "overview" | "groups" | "knockout" | "matches" | "teams";
@@ -69,6 +71,94 @@ function MatchRow({ match }: { match: LiveMatch }) {
         <span className="text-sm font-semibold truncate text-right">{match.awayTeam.shortName}</span>
         <img src={match.awayTeam.crest} alt={match.awayTeam.shortName} className="w-5 h-5 object-contain flex-shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
       </div>
+    </div>
+  );
+}
+
+function SmartUpcomingPlaceholder({
+  nextFixtureDate,
+  hasStarted,
+  isTournament,
+  competitionName,
+  competitionEmblem,
+}: {
+  nextFixtureDate: string | null;
+  hasStarted: boolean;
+  isTournament: boolean;
+  competitionName: string;
+  competitionEmblem: string;
+}) {
+  const daysUntil = nextFixtureDate
+    ? Math.ceil((new Date(nextFixtureDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    : null;
+
+  const nextDateFormatted = nextFixtureDate
+    ? new Date(nextFixtureDate).toLocaleDateString([], { weekday: "short", month: "long", day: "numeric", year: "numeric" })
+    : null;
+
+  const countdownLabel =
+    daysUntil === null ? null
+    : daysUntil <= 0   ? "Starting today!"
+    : daysUntil === 1  ? "1 day remaining"
+    : `${daysUntil} days remaining`;
+
+  if (!hasStarted && nextFixtureDate) {
+    return (
+      <div className="bg-card border border-border rounded-xl p-5 text-center space-y-3">
+        {competitionEmblem && (
+          <img src={competitionEmblem} alt={competitionName} className="w-10 h-10 object-contain mx-auto" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0"; }} />
+        )}
+        <div className="inline-flex items-center gap-1.5 bg-primary/10 text-primary text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+          {isTournament ? "🏆 Tournament Starts Soon" : "⚽ Season Starts Soon"}
+        </div>
+        <p className="font-bold text-sm">{competitionName}</p>
+        <div className="space-y-0.5">
+          <p className="text-[11px] text-muted-foreground">{isTournament ? "Tournament begins" : "First fixture"}</p>
+          <p className="font-semibold text-sm">{nextDateFormatted}</p>
+        </div>
+        {countdownLabel && (
+          <div className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground text-xs font-bold px-3 py-1.5 rounded-full">
+            ⏰ {countdownLabel}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (hasStarted && nextFixtureDate) {
+    return (
+      <div className="bg-card border border-border rounded-xl p-5 text-center space-y-3">
+        <div className="text-3xl">📅</div>
+        <p className="font-bold text-sm">Coming Soon</p>
+        <p className="text-[11px] text-muted-foreground leading-relaxed">
+          No matches scheduled in the next 10 days.
+        </p>
+        <div className="space-y-0.5">
+          <p className="text-[11px] text-muted-foreground">Next match scheduled</p>
+          <p className="font-semibold text-sm text-primary">{nextDateFormatted}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (hasStarted && !nextFixtureDate) {
+    return (
+      <div className="bg-card border border-border rounded-xl p-5 text-center space-y-3">
+        <div className="text-3xl">🏁</div>
+        <p className="font-bold text-sm">Season Completed</p>
+        <p className="text-[11px] text-muted-foreground leading-relaxed">
+          No remaining fixtures this season.<br />
+          Check back when the new season schedule is released.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-card border border-border rounded-xl p-5 text-center space-y-3">
+      <div className="text-3xl">📋</div>
+      <p className="font-bold text-sm">Schedule Not Announced</p>
+      <p className="text-[11px] text-muted-foreground">Fixtures will appear here once announced.</p>
     </div>
   );
 }
@@ -692,21 +782,28 @@ export default function LeagueHub() {
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-xl font-bold flex items-center gap-2">
                   <Calendar className="w-5 h-5 text-primary" />
-                  {liveMatches.length > 0 ? <><span className="w-2 h-2 rounded-full bg-primary animate-pulse inline-block" /> Live & Upcoming</> : "Upcoming"}
+                  {liveMatches.length > 0
+                    ? <><span className="w-2 h-2 rounded-full bg-primary animate-pulse inline-block" /> Live & Upcoming</>
+                    : "Upcoming"}
                 </h2>
-                {isTournament && (
+                {isTournament ? (
                   <button onClick={() => setActiveTab("matches")} className="text-sm text-primary hover:underline font-medium">All</button>
-                )}
-                {!isTournament && (
+                ) : (
                   <Link href="/matches" className="text-sm text-primary hover:underline font-medium">All</Link>
                 )}
               </div>
-              {nextMatches.length === 0 ? (
-                <EmptyState message="No upcoming fixtures" />
-              ) : (
+              {nextMatches.length > 0 ? (
                 <div className="bg-card border border-border rounded-xl overflow-hidden">
                   {nextMatches.map(m => <MatchRow key={m.id} match={m} />)}
                 </div>
+              ) : (
+                <SmartUpcomingPlaceholder
+                  nextFixtureDate={data.nextFixtureDate ?? null}
+                  hasStarted={data.hasStarted ?? false}
+                  isTournament={isTournament}
+                  competitionName={data.competition.name}
+                  competitionEmblem={data.competition.emblem}
+                />
               )}
             </section>
 
