@@ -28,7 +28,7 @@ interface LeagueHubData {
 type Tab = "overview" | "groups" | "knockout" | "matches" | "teams";
 
 const TOURNAMENT_SLUGS = new Set(["champions-league", "europa-league", "world-cup"]);
-const UNSUPPORTED_SLUGS = new Set(["saudi-pro-league", "mls", "europa-league"]);
+const UNSUPPORTED_SLUGS = new Set<string>([]);
 
 const TAB_CONFIG: { id: Tab; label: string }[] = [
   { id: "overview",  label: "Overview"    },

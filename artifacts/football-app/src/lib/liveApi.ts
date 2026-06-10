@@ -96,14 +96,16 @@ export interface LiveHomepage {
 }
 
 export const COMPETITIONS: Competition[] = [
-  { slug: "premier-league",   name: "Premier League",        country: "England", emblem: "https://crests.football-data.org/PL.png",  code: "PL"  },
-  { slug: "la-liga",          name: "La Liga",               country: "Spain",   emblem: "https://crests.football-data.org/PD.png",  code: "PD"  },
-  { slug: "serie-a",          name: "Serie A",               country: "Italy",   emblem: "https://crests.football-data.org/SA.png",  code: "SA"  },
-  { slug: "bundesliga",       name: "Bundesliga",            country: "Germany", emblem: "https://crests.football-data.org/BL1.png", code: "BL1" },
-  { slug: "ligue-1",          name: "Ligue 1",               country: "France",  emblem: "https://crests.football-data.org/FL1.png", code: "FL1" },
-  { slug: "champions-league", name: "UEFA Champions League", country: "Europe",  emblem: "https://crests.football-data.org/CL.png",  code: "CL"  },
-  { slug: "europa-league",    name: "UEFA Europa League",    country: "Europe",  emblem: "https://crests.football-data.org/EL.png",  code: "EL"  },
-  { slug: "world-cup",        name: "FIFA World Cup",        country: "World",   emblem: "https://crests.football-data.org/WC.png",  code: "WC"  },
+  { slug: "premier-league",    name: "Premier League",        country: "England",      emblem: "https://crests.football-data.org/PL.png",                       code: "PL"  },
+  { slug: "la-liga",           name: "La Liga",               country: "Spain",        emblem: "https://crests.football-data.org/PD.png",                       code: "PD"  },
+  { slug: "serie-a",           name: "Serie A",               country: "Italy",        emblem: "https://crests.football-data.org/SA.png",                       code: "SA"  },
+  { slug: "bundesliga",        name: "Bundesliga",            country: "Germany",      emblem: "https://crests.football-data.org/BL1.png",                      code: "BL1" },
+  { slug: "ligue-1",           name: "Ligue 1",               country: "France",       emblem: "https://crests.football-data.org/FL1.png",                      code: "FL1" },
+  { slug: "champions-league",  name: "UEFA Champions League", country: "Europe",       emblem: "https://crests.football-data.org/CL.png",                       code: "CL"  },
+  { slug: "europa-league",     name: "UEFA Europa League",    country: "Europe",       emblem: "https://crests.football-data.org/EL.png",                       code: "EL"  },
+  { slug: "saudi-pro-league",  name: "Saudi Pro League",      country: "Saudi Arabia", emblem: "https://media.api-sports.io/football/leagues/307.png",          code: "SPL" },
+  { slug: "mls",               name: "MLS",                   country: "USA",          emblem: "https://media.api-sports.io/football/leagues/253.png",          code: "MLS" },
+  { slug: "world-cup",         name: "FIFA World Cup",        country: "World",        emblem: "https://crests.football-data.org/WC.png",                       code: "WC"  },
 ];
 
 export function getCompetition(slug: string): Competition | undefined {
