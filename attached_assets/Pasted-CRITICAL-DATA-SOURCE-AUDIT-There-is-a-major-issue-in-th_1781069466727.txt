@@ -1,0 +1,172 @@
+CRITICAL DATA SOURCE AUDIT
+
+There is a major issue in the Competitions sidebar.
+
+Problem:
+
+When I click different leagues (La Liga, Serie A, Bundesliga, Ligue 1, Champions League, etc.), the displayed data appears outdated, static, incorrect, or identical across leagues.
+
+Examples:
+
+* Standings do not match current league standings.
+* Matches appear fake or old.
+* Recent results are incorrect.
+* Team rankings are not changing correctly.
+* Some leagues show data that looks hardcoded.
+
+I suspect the UI is NOT using the football API that I provided and is instead using fallback, mock, demo, cached, or hardcoded data.
+
+TASK
+
+Perform a full audit of the entire application.
+
+1. TRACE DATA FLOW
+
+For every competition page, identify:
+
+* Where standings data comes from
+* Where matches data comes from
+* Where team data comes from
+* Where recent results come from
+
+Log the exact source being used.
+
+2. VERIFY API USAGE
+
+Check whether league selection actually triggers API requests.
+
+When a user clicks:
+
+* Premier League
+* La Liga
+* Serie A
+* Bundesliga
+* Ligue 1
+* Champions League
+* Europa League
+* Saudi Pro League
+* MLS
+* World Cup
+
+the application must make a fresh API request using the correct competition ID.
+
+3. REMOVE FALLBACK DATA
+
+Search entire project for:
+
+mockData
+sampleData
+fakeData
+dummyData
+fallbackStandings
+fallbackMatches
+hardcodedTeams
+placeholderData
+testData
+
+Remove or disable them.
+
+The application should NEVER silently display fake football data.
+
+4. VERIFY LEAGUE MAPPING
+
+Check competition IDs.
+
+Example:
+
+Premier League → correct API ID
+La Liga → correct API ID
+Serie A → correct API ID
+Bundesliga → correct API ID
+Ligue 1 → correct API ID
+Champions League → correct API ID
+
+Ensure every sidebar item maps to the proper API competition.
+
+5. ADD DEBUG LOGGING
+
+When a league is selected, log:
+
+Selected League:
+Competition ID:
+API Endpoint:
+Response Status:
+Records Returned:
+
+Example:
+
+League: La Liga
+Competition ID: XXX
+Endpoint: ...
+Status: 200
+Standings Returned: 20
+
+6. NETWORK VERIFICATION
+
+Confirm that clicking a league actually triggers a new request.
+
+Bad:
+User clicks Bundesliga
+UI changes
+No API request occurs
+
+Good:
+User clicks Bundesliga
+API request fires
+New data loads
+UI updates
+
+7. CACHE AUDIT
+
+Check whether cache is returning stale data.
+
+Requirements:
+
+* Cache key must include competition ID.
+* La Liga cache must never be shown for Bundesliga.
+* Bundesliga cache must never be shown for Serie A.
+
+8. LOADING STATE
+
+When switching leagues:
+
+Show:
+Loading league data...
+
+Do not instantly display previous league data.
+
+9. DATA VALIDATION
+
+Verify that:
+
+* Team names match API
+* Points match API
+* Positions match API
+* Match results match API
+
+10. ERROR HANDLING
+
+If API fails:
+
+Show:
+"Unable to load live league data."
+
+Do NOT show mock standings.
+
+11. FINAL REPORT
+
+After completing the audit provide:
+
+✓ API endpoint being used
+✓ Competition IDs used
+✓ Files containing hardcoded data
+✓ Files updated
+✓ Confirmation that all competition pages now use live API responses
+
+IMPORTANT
+
+Live API data must always be the single source of truth.
+
+If the API has no data, show an error state.
+
+Never substitute fake football data without explicitly informing the user.
