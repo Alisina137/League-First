@@ -1,0 +1,81 @@
+UI REFACTOR REQUEST
+
+Move the "MORE" section items from the left sidebar and convert them into a horizontal top navigation/tab bar.
+
+Current items:
+- Standings
+- Teams
+- Players
+- Transfers
+- News
+- Bookmarks
+
+Requirements:
+
+1. Create a sticky horizontal navigation bar directly below the main header.
+2. Remove these items from the left sidebar completely.
+3. Display them as tabs:
+
+[Standings] [Teams] [Players] [Transfers] [News] [Bookmarks]
+
+4. Active tab styling:
+   - Green background (#00b383)
+   - Dark text
+   - Rounded pill shape
+   - Smooth transition animation
+
+5. Inactive tabs:
+   - Dark background
+   - Light text
+   - Hover effect with subtle glow
+
+6. Mobile responsiveness:
+   - Horizontal scroll if tabs overflow
+   - No wrapping to multiple lines
+   - Hide scrollbar visually while keeping scroll functionality
+
+7. Clicking a tab should:
+   - Update URL state if routing exists
+   - Load the corresponding content section
+   - Preserve current league selection
+
+Examples:
+- /standings
+- /teams
+- /players
+- /transfers
+- /news
+- /bookmarks
+
+8. Keep the left sidebar ONLY for competitions/leagues:
+
+Leagues:
+- Premier League
+- La Liga
+- Serie A
+- Bundesliga
+- Ligue 1
+- Champions League
+- Europa League
+- Saudi Pro League
+- MLS
+- World Cup
+
+9. Layout hierarchy should become:
+
+----------------------------------------------------
+HEADER
+----------------------------------------------------
+TOP TAB NAVIGATION
+[Standings] [Teams] [Players] [Transfers] [News]
+----------------------------------------------------
+LEAGUE FILTER BUTTONS
+----------------------------------------------------
+PAGE CONTENT
+----------------------------------------------------
+
+10. Ensure all tabs are functional and switch views without page refresh when possible.
+
+11. Use the existing dark football theme and match current styling.
+
+12. Make the top navigation look similar to modern sports apps such as Sofascore, FotMob, and OneFootball.
