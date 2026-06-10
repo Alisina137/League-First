@@ -209,29 +209,22 @@ function KnockoutView({ slug }: { slug: string }) {
     );
   }
 
-  const rounds          = data.rounds;
-  const finalRound      = rounds[rounds.length - 1];
-  // Third-place is a side match — separate it from the main bracket tree
-  const thirdPlaceRound = rounds.slice(0, -1).find(r => r.stage === "THIRD_PLACE");
-  const preRounds       = rounds.slice(0, -1).filter(r => r.stage !== "THIRD_PLACE");
-  const numLevels       = preRounds.length;
+  // Separate Third Place — it's a side match outside the main tree
+  const thirdPlaceRound = data.rounds.find(r => r.stage === "THIRD_PLACE");
+  const mainRounds      = data.rounds.filter(r => r.stage !== "THIRD_PLACE");
+  const numRounds       = mainRounds.length;
 
-  // Split each pre-final round into left / right halves
-  const leftByLevel  = preRounds.map(r => r.matches.slice(0, Math.ceil(r.matches.length / 2)));
-  const rightByLevel = preRounds.map(r => r.matches.slice(Math.ceil(r.matches.length / 2)));
+  // Total height driven by the first (most-match) round
+  const totalH  = (mainRounds[0]?.matches.length ?? 1) * B_SLOT;
 
-  // Total bracket height is driven by the earliest (most-match) round
-  const maxSide = Math.max(leftByLevel[0]?.length ?? 0, rightByLevel[0]?.length ?? 0, 1);
-  const totalH  = maxSide * B_SLOT;
-
-  // Slot height grows by ×2 each level closer to Final
+  // Slot height doubles each level (0 = first round, numRounds-1 = Final)
   const getSlot = (li: number) => B_SLOT * Math.pow(2, li);
-  // Vertical position (top) of a match card within its column
   const getTop  = (mi: number, li: number) => { const s = getSlot(li); return mi * s + (s - B_CARD_H) / 2; };
 
   const RoundLabel = ({ label, gold }: { label: string; gold?: boolean }) => (
     <div className="h-7 flex items-end justify-center pb-1">
-      <span className={`text-[10px] font-bold uppercase tracking-widest whitespace-nowrap ${gold ? "text-yellow-600 dark:text-yellow-400" : "text-muted-foreground"}`}>
+      <span className={`text-[10px] font-bold uppercase tracking-widest whitespace-nowrap
+        ${gold ? "text-yellow-600 dark:text-yellow-400" : "text-muted-foreground"}`}>
         {label}
       </span>
     </div>
@@ -249,79 +242,47 @@ function KnockoutView({ slug }: { slug: string }) {
       <div className="overflow-x-auto pb-3 -mx-1 px-1">
         <div className="flex items-start" style={{ minWidth: "max-content" }}>
 
-          {/* ── LEFT SIDE (R16 → QF → SF) ── */}
-          {leftByLevel.map((matches, li) => {
-            const slot   = getSlot(li);
-            const isLast = li === numLevels - 1;
+          {/* ── All rounds left → right ── */}
+          {mainRounds.map((round, li) => {
+            const isFinal  = li === numRounds - 1;
+            const slot     = getSlot(li);
+            const cardW    = isFinal ? 212 : B_CARD_W;
+            const next     = mainRounds[li + 1];
+
             return (
-              <div key={`L${li}`} className="flex items-start flex-shrink-0">
-                <div className="flex flex-col flex-shrink-0" style={{ width: B_CARD_W }}>
-                  <RoundLabel label={preRounds[li].label} />
+              <div key={round.stage} className="flex items-start flex-shrink-0">
+                {/* Column */}
+                <div className="flex flex-col flex-shrink-0" style={{ width: cardW }}>
+                  <RoundLabel label={isFinal ? "🏆 Final" : round.label} gold={isFinal} />
                   <div className="relative" style={{ height: totalH }}>
-                    {matches.map((m, mi) => (
-                      <div key={m.id} className="absolute" style={{ top: getTop(mi, li), width: B_CARD_W }}>
-                        <BracketCard match={m} />
+                    {round.matches.map((m, mi) => (
+                      <div key={m.id} className="absolute" style={{ top: getTop(mi, li), width: cardW }}>
+                        <BracketCard match={m} isFinal={isFinal} />
                       </div>
                     ))}
-                  </div>
-                </div>
-                <div className="flex flex-col flex-shrink-0" style={{ width: B_CONN }}>
-                  <div className="h-7" />
-                  {isLast
-                    ? <FinalConnector totalH={totalH} side="left" />
-                    : <BracketConnector numParents={leftByLevel[li + 1]?.length ?? 0} childSlot={slot} totalH={totalH} side="left" />
-                  }
-                </div>
-              </div>
-            );
-          })}
-
-          {/* ── FINAL (center) ── */}
-          <div className="flex flex-col flex-shrink-0 items-center" style={{ width: 212 }}>
-            <RoundLabel label="🏆 Final" gold />
-            <div className="flex items-center justify-center" style={{ height: totalH }}>
-              {finalRound.matches[0]
-                ? <BracketCard match={finalRound.matches[0]} isFinal />
-                : (
-                  <div className="rounded-lg border-2 border-dashed border-border/50 flex items-center justify-center"
-                    style={{ width: 212, height: B_CARD_H }}>
-                    <span className="text-xs text-muted-foreground">TBD</span>
-                  </div>
-                )
-              }
-            </div>
-          </div>
-
-          {/* ── RIGHT SIDE (SF → QF → R16) ── */}
-          {Array.from({ length: numLevels }, (_, revIdx) => {
-            const li      = numLevels - 1 - revIdx;
-            const matches = rightByLevel[li];
-            const slot    = getSlot(li);
-            const isFirst = revIdx === 0;
-            return (
-              <div key={`R${li}`} className="flex items-start flex-shrink-0">
-                <div className="flex flex-col flex-shrink-0" style={{ width: B_CONN }}>
-                  <div className="h-7" />
-                  {isFirst
-                    ? <FinalConnector totalH={totalH} side="right" />
-                    : <BracketConnector
-                        numParents={rightByLevel[numLevels - revIdx]?.length ?? 0}
-                        childSlot={slot}
-                        totalH={totalH}
-                        side="right"
-                      />
-                  }
-                </div>
-                <div className="flex flex-col flex-shrink-0" style={{ width: B_CARD_W }}>
-                  <RoundLabel label={preRounds[li].label} />
-                  <div className="relative" style={{ height: totalH }}>
-                    {matches.map((m, mi) => (
-                      <div key={m.id} className="absolute" style={{ top: getTop(mi, li), width: B_CARD_W }}>
-                        <BracketCard match={m} />
+                    {round.matches.length === 0 && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="rounded-lg border-2 border-dashed border-border/40 flex items-center justify-center"
+                          style={{ width: cardW, height: B_CARD_H }}>
+                          <span className="text-xs text-muted-foreground">TBD</span>
+                        </div>
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
+
+                {/* Connector to next round */}
+                {!isFinal && next && (
+                  <div className="flex flex-col flex-shrink-0" style={{ width: B_CONN }}>
+                    <div className="h-7" />
+                    <BracketConnector
+                      numParents={next.matches.length}
+                      childSlot={slot}
+                      totalH={totalH}
+                      side="left"
+                    />
+                  </div>
+                )}
               </div>
             );
           })}
@@ -329,9 +290,9 @@ function KnockoutView({ slug }: { slug: string }) {
         </div>
       </div>
 
-      {/* ── THIRD PLACE (if present) ── */}
+      {/* Third Place (World Cup etc.) */}
       {thirdPlaceRound && thirdPlaceRound.matches[0] && (
-        <div className="flex items-center gap-3 pt-1">
+        <div className="pt-1 border-t border-border/40">
           <div className="flex flex-col items-start gap-1">
             <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
               {thirdPlaceRound.label}
