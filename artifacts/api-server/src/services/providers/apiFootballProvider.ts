@@ -112,13 +112,6 @@ function teamShortName(name: string, code?: string | null): string {
   return words.map(w => w[0]).join("").toUpperCase().slice(0, 4);
 }
 
-function dateWindowParam(): string {
-  const now = new Date();
-  const from = new Date(now); from.setDate(from.getDate() - 90);
-  const to   = new Date(now); to.setDate(to.getDate() + 90);
-  const fmt  = (d: Date) => d.toISOString().split("T")[0];
-  return `&from=${fmt(from)}&to=${fmt(to)}`;
-}
 
 export async function getStandings(slug: string): Promise<LiveStanding[]> {
   const comp = AF_COMPETITIONS[slug];
@@ -163,8 +156,7 @@ export async function getMatches(slug: string, status?: string): Promise<LiveMat
   const comp = AF_COMPETITIONS[slug];
   if (!comp) throw new Error(`No API-Football config for ${slug}`);
   return cached(`af:matches:${slug}:all`, TTL.MATCHES, async () => {
-    const window = dateWindowParam();
-    const raw = await afFetch(`/fixtures?league=${comp.leagueId}&season=${comp.season}${window}`) as {
+    const raw = await afFetch(`/fixtures?league=${comp.leagueId}&season=${comp.season}`) as {
       response: Array<{
         fixture: {
           id: number; date: string; venue: { name: string; city: string } | null;
