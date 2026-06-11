@@ -8,8 +8,6 @@ import Home from "./pages/Home";
 import LeagueHub from "./pages/LeagueHub";
 import Matches from "./pages/Matches";
 import Standings from "./pages/Standings";
-import Transfers from "./pages/Transfers";
-import News from "./pages/News";
 import Teams from "./pages/Teams";
 import Players from "./pages/Players";
 import Bookmarks from "./pages/Bookmarks";
@@ -34,8 +32,6 @@ function Router() {
         <Route path="/matches" component={Matches} />
         <Route path="/standings" component={Standings} />
         <Route path="/standings/:slug" component={Standings} />
-        <Route path="/transfers" component={Transfers} />
-        <Route path="/news" component={News} />
         <Route path="/teams" component={Teams} />
         <Route path="/players" component={Players} />
         <Route path="/bookmarks" component={Bookmarks} />

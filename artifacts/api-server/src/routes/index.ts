@@ -5,8 +5,6 @@ import matchesRouter from "./matches";
 import standingsRouter from "./standings";
 import playersRouter from "./players";
 import teamsRouter from "./teams";
-import transfersRouter from "./transfers";
-import newsRouter from "./news";
 import homepageRouter from "./homepage";
 import preferencesRouter from "./preferences";
 import liveStandingsRouter from "./live-standings";
@@ -32,8 +30,6 @@ router.use(matchesRouter);
 router.use(standingsRouter);
 router.use(playersRouter);
 router.use(teamsRouter);
-router.use(transfersRouter);
-router.use(newsRouter);
 router.use(homepageRouter);
 router.use(preferencesRouter);
 

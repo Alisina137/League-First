@@ -5,8 +5,6 @@ import {
   Trophy,
   Users,
   User,
-  ArrowRightLeft,
-  Newspaper,
   Bookmark,
   Settings,
   Menu,
@@ -17,12 +15,10 @@ import { LEAGUE_LOGOS } from "../data/leagueLogos";
 import { ThemeToggle } from "./ThemeToggle";
 
 const TOP_TABS = [
-  { label: "Standings", href: "/standings", icon: Trophy },
-  { label: "Teams",     href: "/teams",     icon: Users },
-  { label: "Top Scorers", href: "/players", icon: User },
-  { label: "Transfers", href: "/transfers", icon: ArrowRightLeft },
-  { label: "News",      href: "/news",      icon: Newspaper },
-  { label: "Bookmarks", href: "/bookmarks", icon: Bookmark },
+  { label: "Standings",   href: "/standings", icon: Trophy },
+  { label: "Teams",       href: "/teams",     icon: Users },
+  { label: "Top Scorers", href: "/players",   icon: User },
+  { label: "Bookmarks",   href: "/bookmarks", icon: Bookmark },
 ];
 
 const SIDEBAR_NAV = [
