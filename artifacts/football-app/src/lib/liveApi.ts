@@ -60,6 +60,8 @@ export interface KnockoutTie {
   teamAGoals: number | null;
   teamBGoals: number | null;
   winnerId: number | null;
+  sourceAId: string | null;
+  sourceBId: string | null;
 }
 
 export interface KnockoutRound {

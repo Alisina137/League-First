@@ -52,6 +52,10 @@ export interface KnockoutTie {
   teamAGoals: number | null;
   teamBGoals: number | null;
   winnerId: number | null;
+  /** ID of the previous-round tie that produced teamA (null if no prior round / not found) */
+  sourceAId: string | null;
+  /** ID of the previous-round tie that produced teamB (null if no prior round / not found) */
+  sourceBId: string | null;
 }
 
 export interface KnockoutRound {
@@ -188,10 +192,90 @@ function buildTies(matches: LiveMatch[]): KnockoutTie[] {
       id: m2 ? `${m1.id}-${m2.id}` : `${m1.id}`,
       teamA, teamB, leg1, leg2,
       teamAGoals, teamBGoals, winnerId,
+      // Source IDs are filled in by orderBracketProgression after all rounds are built
+      sourceAId: null,
+      sourceBId: null,
     });
   }
 
   return ties;
+}
+
+/**
+ * Post-process rounds to establish correct bracket ordering.
+ *
+ * The connector lines in the UI assume array-index adjacency: round[i] ties at
+ * positions (0,1) feed into round[i+1] slot 0, positions (2,3) feed slot 1, etc.
+ * Without explicit ordering the ties are in arbitrary map-iteration order, making
+ * the connectors point to the wrong next-round matches.
+ *
+ * This function works backwards from the Final:
+ *   1. For each tie in the later round, find which earlier-round ties contain teamA / teamB.
+ *   2. Set sourceAId / sourceBId on the later-round tie.
+ *   3. Reorder the earlier round so that pairs (2q, 2q+1) are the two source ties
+ *      that feed into later-round slot q.
+ *
+ * The THIRD_PLACE round is excluded — it is rendered separately and does not
+ * participate in the main bracket flow.
+ */
+function orderBracketProgression(rounds: KnockoutRound[]): void {
+  // Exclude THIRD_PLACE from the ordering pass — it is a standalone match
+  const main = rounds.filter(r => r.stage !== "THIRD_PLACE");
+  if (main.length < 2) return;
+
+  // Work backwards: Final → SF → QF → R16 …
+  for (let i = main.length - 1; i >= 1; i--) {
+    const curr = main[i];
+    const prev = main[i - 1];
+
+    // Only reorder when the previous round has exactly 2× the ties (standard halving)
+    if (prev.ties.length !== curr.ties.length * 2) continue;
+
+    // Step 1 — link each later-round tie to its two source ties (search by team ID, not winnerId,
+    // so we find the source even when the earlier-round match hasn't been played yet)
+    for (const tie of curr.ties) {
+      tie.sourceAId = prev.ties.find(
+        t => t.teamA.id === tie.teamA.id || t.teamB.id === tie.teamA.id,
+      )?.id ?? null;
+      tie.sourceBId = prev.ties.find(
+        t => t.teamA.id === tie.teamB.id || t.teamB.id === tie.teamB.id,
+      )?.id ?? null;
+
+      // Validation log
+      if (!tie.sourceAId || !tie.sourceBId) {
+        console.warn(
+          `[Knockout] Bracket progression: could not find source tie(s) for ` +
+          `${tie.teamA.shortName} vs ${tie.teamB.shortName} in stage ${curr.stage}. ` +
+          `sourceAId=${tie.sourceAId} sourceBId=${tie.sourceBId}`,
+        );
+      } else {
+        console.debug(
+          `[Knockout] Progression: ${curr.stage} tie "${tie.teamA.shortName} vs ${tie.teamB.shortName}" ` +
+          `← prev ties [${tie.sourceAId}] and [${tie.sourceBId}]`,
+        );
+      }
+    }
+
+    // Step 2 — reorder the previous round so adjacent pairs correspond to current slots:
+    //   prev[2q]   = source A for curr[q]
+    //   prev[2q+1] = source B for curr[q]
+    const ordered: KnockoutTie[] = [];
+    const placed = new Set<string>();
+
+    for (const tie of curr.ties) {
+      const srcA = prev.ties.find(t => t.id === tie.sourceAId);
+      const srcB = prev.ties.find(t => t.id === tie.sourceBId);
+      if (srcA && !placed.has(srcA.id)) { ordered.push(srcA); placed.add(srcA.id); }
+      if (srcB && !placed.has(srcB.id)) { ordered.push(srcB); placed.add(srcB.id); }
+    }
+
+    // Guard: append any ties that weren't matched (data anomaly — keeps them visible)
+    for (const t of prev.ties) {
+      if (!placed.has(t.id)) { ordered.push(t); placed.add(t.id); }
+    }
+
+    prev.ties = ordered;
+  }
 }
 
 router.get("/live/knockout", async (req, res): Promise<void> => {
@@ -234,6 +318,11 @@ router.get("/live/knockout", async (req, res): Promise<void> => {
       }))
       .filter(r => r.ties.length > 0) // hide rounds with no valid ties
       .sort((a, b) => a.order - b.order);
+
+    // Reorder ties within each round so that adjacent pairs correctly feed into
+    // the next-round slot, and populate sourceAId / sourceBId on every tie.
+    // This is what makes the frontend connector lines accurate.
+    orderBracketProgression(rounds);
 
     const isLive = knockoutMatches.some(m => m.status === "live");
 

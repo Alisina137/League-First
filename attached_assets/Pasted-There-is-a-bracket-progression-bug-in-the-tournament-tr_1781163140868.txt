@@ -1,0 +1,59 @@
+There is a bracket progression bug in the tournament tree.
+
+PROBLEM:
+The winners displayed in each match card are correct, but the connectors and next-round pairings are wrong.
+
+Example from the screenshot:
+- Liverpool beats Galatasaray, but Liverpool is incorrectly connected to the next round.
+- Bayern beats Atalanta, and the actual next-round match should be Real Madrid vs Bayern.
+- Barca and Atletico appear connected to the next round, but the actual semifinal match is Sporting CP vs Arsenal.
+- The visual bracket connections do not match the winners that advanced.
+
+ROOT CAUSE TO INVESTIGATE:
+The bracket is likely using array indexes, rendered order, or UI positions instead of the actual winner source match IDs when constructing the next round.
+
+WHAT TO FIX:
+1. Audit the bracket generation logic.
+2. Find where next-round matches are created from previous-round matches.
+3. Ensure every next-round slot references the winner of a specific source match:
+   - sourceMatch1 -> nextRound.homeTeam
+   - sourceMatch2 -> nextRound.awayTeam
+4. Do NOT determine advancement based on visual position, sorting order, array index, filtered arrays, pagination, or rendered card order.
+5. Use stable unique match IDs and parent-child relationships.
+6. Verify that every connector line originates from the exact match that produced the advancing team.
+7. Rebuild the bracket tree using explicit references:
+   {
+     id,
+     round,
+     homeTeam,
+     awayTeam,
+     winner,
+     sourceMatchA,
+     sourceMatchB
+   }
+8. Add validation that confirms:
+   - nextRound.homeTeam === winner(sourceMatchA)
+   - nextRound.awayTeam === winner(sourceMatchB)
+9. Fix both:
+   - visual connector lines
+   - next-round team assignment
+10. Search the entire codebase for:
+    - bracket generation
+    - tournament tree
+    - round builder
+    - advancement logic
+    - connector rendering
+    - match pairing logic
+
+AFTER FIXING:
+Provide:
+1. The exact root cause.
+2. Files modified.
+3. Code changes made.
+4. Before/after explanation.
+5. A test showing that:
+   - Real Madrid vs Bayern is generated correctly.
+   - Sporting CP vs Arsenal is generated correctly.
+   - All connector lines point to the correct next-round match.
+6. Report any remaining edge cases.
+7. Do not stop until the bracket progression and visual connectors are fully synchronized.

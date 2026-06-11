@@ -307,6 +307,45 @@ function KnockoutView({ slug }: { slug: string }) {
   const thirdPlaceRound = data.rounds.find(r => r.stage === "THIRD_PLACE");
   const mainRounds      = data.rounds.filter(r => r.stage !== "THIRD_PLACE");
 
+  // ── Bracket progression validation ────────────────────────────────────────
+  // For every round i+1, verify that each tie's sourceAId / sourceBId points
+  // to a real tie in round i, and that the connector pairs (prev[2q], prev[2q+1])
+  // actually feed into curr[q].  Any mismatch is logged so it can be diagnosed.
+  React.useEffect(() => {
+    for (let i = 1; i < mainRounds.length; i++) {
+      const curr = mainRounds[i];
+      const prev = mainRounds[i - 1];
+      if (prev.ties.length !== curr.ties.length * 2) continue;
+      for (let q = 0; q < curr.ties.length; q++) {
+        const tie = curr.ties[q];
+        const expectedSrcA = prev.ties[2 * q];
+        const expectedSrcB = prev.ties[2 * q + 1];
+        if (
+          tie.sourceAId && expectedSrcA &&
+          tie.sourceAId !== expectedSrcA.id
+        ) {
+          console.error(
+            `[Knockout] Invalid bracket progression detected — ` +
+            `${curr.stage} slot ${q}: sourceAId "${tie.sourceAId}" ` +
+            `does not match prev slot ${2 * q} id "${expectedSrcA.id}" ` +
+            `(${tie.teamA.shortName} vs ${tie.teamB.shortName})`,
+          );
+        }
+        if (
+          tie.sourceBId && expectedSrcB &&
+          tie.sourceBId !== expectedSrcB.id
+        ) {
+          console.error(
+            `[Knockout] Invalid bracket progression detected — ` +
+            `${curr.stage} slot ${q}: sourceBId "${tie.sourceBId}" ` +
+            `does not match prev slot ${2 * q + 1} id "${expectedSrcB.id}" ` +
+            `(${tie.teamA.shortName} vs ${tie.teamB.shortName})`,
+          );
+        }
+      }
+    }
+  }, [mainRounds]);
+
   // Height driven by the round with the most ties
   const maxTies = Math.max(...mainRounds.map(r => r.ties.length), 1);
   const totalH  = maxTies * B_SLOT;
