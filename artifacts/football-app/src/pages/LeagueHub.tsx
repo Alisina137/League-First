@@ -9,6 +9,7 @@ import {
   type LiveScorer,
   type LiveTeam,
   type KnockoutData,
+  type KnockoutTie,
 } from "../lib/liveApi";
 import { TableSkeleton, ErrorState, EmptyState } from "../components/Skeleton";
 import { UpcomingEmptyState } from "../components/UpcomingEmptyState";
@@ -76,75 +77,151 @@ function MatchRow({ match }: { match: LiveMatch }) {
   );
 }
 
-// ─── TOURNAMENT BRACKET ──────────────────────────────────────────
-const B_CARD_W = 188;
-const B_CARD_H = 80;
-const B_SLOT = 100;   // vertical slot height at the earliest (most-match) round
-const B_CONN = 30;    // width of connector SVG between columns
+// ─── KNOCKOUT BRACKET ────────────────────────────────────────────
 
-function bracketWinner(match: LiveMatch): "home" | "away" | null {
-  if (match.homeScore === null || match.awayScore === null) return null;
-  if (match.homeScore > match.awayScore) return "home";
-  if (match.awayScore > match.homeScore) return "away";
-  return null;
+const B_TIE_W  = 226;   // card width
+const B_TIE_H  = 118;   // nominal height for layout maths (cards may be slightly taller)
+const B_SLOT   = 150;   // slot height at the densest round
+const B_CONN_W = 30;    // connector column width
+
+function scoreCell(val: number | null) {
+  return val !== null
+    ? <span className="text-[11px] tabular-nums w-5 text-center font-bold text-foreground">{val}</span>
+    : <span className="text-[11px] tabular-nums w-5 text-center text-muted-foreground/30">–</span>;
 }
 
-function BracketTeamRow({ team, score, winning }: {
-  team: { name: string; shortName: string; crest: string };
-  score: number | null;
-  winning: boolean;
+function TieCard({ tie, isFinal = false, singleLeg = false }: {
+  tie: KnockoutTie;
+  isFinal?: boolean;
+  singleLeg?: boolean;
 }) {
-  return (
-    <div className={`flex items-center gap-1.5 px-1.5 py-[5px] rounded-sm transition-colors ${winning ? "bg-emerald-500/10 dark:bg-emerald-500/15" : ""}`}>
-      <img
-        src={team.crest} alt={team.shortName}
-        className="w-4 h-4 object-contain flex-shrink-0"
-        onError={e => { (e.target as HTMLImageElement).style.opacity = "0.3"; }}
-      />
-      <span className={`flex-1 text-[11px] truncate ${winning ? "font-bold text-foreground" : "font-medium text-muted-foreground"}`}>
-        {team.shortName || team.name}
-      </span>
-      <span className={`text-xs tabular-nums w-4 text-right font-bold ${winning ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`}>
-        {score !== null ? score : ""}
-      </span>
-    </div>
-  );
-}
+  const isLive     = tie.leg1?.status === "live" || tie.leg2?.status === "live";
+  const leg1Done   = tie.leg1?.status === "finished" && tie.leg1.homeScore !== null;
+  const leg2Done   = !tie.leg2 ? false : tie.leg2.status === "finished" && tie.leg2.homeScore !== null;
+  const tieOver    = singleLeg ? leg1Done : (leg1Done && leg2Done);
+  const hasAgg     = tie.teamAGoals !== null && tie.teamBGoals !== null && tieOver;
+  const winnerIsA  = hasAgg && tie.winnerId === tie.teamA.id;
+  const winnerIsB  = hasAgg && tie.winnerId === tie.teamB.id;
 
-function BracketCard({ match, isFinal = false }: { match: LiveMatch; isFinal?: boolean }) {
-  const isLive = match.status === "live";
-  const isFinished = match.status === "finished";
-  const w = bracketWinner(match);
-  const date = new Date(match.matchDate);
-  const dateStr = date.toLocaleDateString([], { month: "short", day: "numeric" });
-  const timeStr = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  const cardW = isFinal ? 212 : B_CARD_W;
+  // Goals per leg per team:
+  // teamA was home in L1, away in L2
+  const l1A = tie.leg1?.homeScore ?? null;
+  const l1B = tie.leg1?.awayScore ?? null;
+  const l2A = tie.leg2?.awayScore ?? null;
+  const l2B = tie.leg2?.homeScore ?? null;
+
+  // Footer
+  let footerText: string | null = null;
+  let footerIsAgg = false;
+  if (hasAgg && !singleLeg && tie.teamAGoals !== null && tie.teamBGoals !== null) {
+    footerIsAgg = true;
+    if (tie.winnerId === tie.teamA.id) {
+      footerText = `Agg: ${tie.teamA.shortName} ${tie.teamAGoals}–${tie.teamBGoals}`;
+    } else if (tie.winnerId === tie.teamB.id) {
+      footerText = `Agg: ${tie.teamB.shortName} ${tie.teamBGoals}–${tie.teamAGoals}`;
+    } else {
+      footerText = `Agg: ${tie.teamAGoals}–${tie.teamBGoals} (ET/Pens)`;
+    }
+  } else if (!tieOver && leg1Done && tie.leg2 && tie.leg2.status === "upcoming") {
+    const d = new Date(tie.leg2.date);
+    footerText = `Leg 2: ${d.toLocaleDateString([], { month: "short", day: "numeric" })}`;
+  } else if (tie.leg1?.status === "upcoming") {
+    const d = new Date(tie.leg1.date);
+    footerText = `Leg 1: ${d.toLocaleDateString([], { month: "short", day: "numeric" })}`;
+  }
+
+  const borderCls = isFinal && tieOver && tie.winnerId
+    ? "border-yellow-400/50 shadow-yellow-500/10 shadow-md"
+    : isLive
+    ? "border-primary/60 shadow-primary/10 shadow-md"
+    : "border-border hover:border-primary/30";
 
   return (
-    <div style={{ width: cardW }} className={`rounded-lg border overflow-hidden shadow-sm transition-all duration-150
-      ${isLive ? "border-primary/60 shadow-primary/10 shadow-md" : isFinal && isFinished && w ? "border-yellow-400/60 shadow-yellow-500/10 shadow-md" : "border-border hover:border-primary/40"}`}>
-      {isLive ? (
+    <div style={{ width: B_TIE_W }} className={`rounded-2xl border bg-card overflow-hidden shadow-sm transition-all duration-150 ${borderCls}`}>
+
+      {/* Status bar */}
+      {isFinal ? (
+        <div className={`flex items-center justify-center gap-1.5 py-1.5 border-b ${
+          tieOver && tie.winnerId
+            ? "bg-yellow-400/10 border-yellow-400/25"
+            : "bg-muted/40 border-border/40"
+        }`}>
+          <span className={`text-[10px] font-bold tracking-wider ${tieOver && tie.winnerId ? "text-yellow-600 dark:text-yellow-400" : "text-muted-foreground"}`}>
+            🏆 FINAL
+          </span>
+        </div>
+      ) : isLive ? (
         <div className="bg-primary flex items-center justify-center gap-1 py-[3px]">
           <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-          <span className="text-[10px] font-bold text-white tracking-wide">LIVE{match.minute ? ` ${match.minute}'` : ""}</span>
-        </div>
-      ) : isFinal && isFinished && w ? (
-        <div className="bg-yellow-400/15 border-b border-yellow-400/30 flex items-center justify-center gap-1 py-[3px]">
-          <span className="text-[10px] font-bold text-yellow-600 dark:text-yellow-400">🏆 CHAMPION</span>
-        </div>
-      ) : !isFinished ? (
-        <div className="bg-muted/50 border-b border-border/40 flex items-center justify-center py-[3px]">
-          <span className="text-[10px] text-muted-foreground">{dateStr} · {timeStr}</span>
+          <span className="text-[10px] font-bold text-white tracking-wide">LIVE</span>
         </div>
       ) : null}
-      <div className="bg-card p-1">
-        <BracketTeamRow team={match.homeTeam} score={match.homeScore} winning={w === "home"} />
-        <div className="mx-1.5 h-px bg-border/60" />
-        <BracketTeamRow team={match.awayTeam} score={match.awayScore} winning={w === "away"} />
+
+      {/* Column headers for two-leg ties */}
+      {!singleLeg && (
+        <div className="flex items-center px-3 pt-2 pb-0.5">
+          <div className="flex-1" />
+          <div className="flex gap-1">
+            <span className="w-5 text-center text-[9px] font-bold uppercase tracking-wider text-muted-foreground/50">L1</span>
+            <span className="w-5 text-center text-[9px] font-bold uppercase tracking-wider text-muted-foreground/50">L2</span>
+          </div>
+        </div>
+      )}
+
+      {/* Team A row */}
+      <div className={`flex items-center gap-2 px-3 py-[7px] ${winnerIsA ? "bg-primary/[0.06]" : ""}`}>
+        <img
+          src={tie.teamA.crest} alt={tie.teamA.shortName}
+          className="w-[15px] h-[15px] object-contain flex-shrink-0"
+          onError={e => { (e.target as HTMLImageElement).style.opacity = "0.2"; }}
+        />
+        <span className={`flex-1 text-[11px] truncate leading-tight ${winnerIsA ? "font-bold text-foreground" : "font-medium text-muted-foreground"}`}>
+          {tie.teamA.shortName || tie.teamA.name}
+        </span>
+        {winnerIsA && <span className="text-primary text-[8px] mr-0.5">▲</span>}
+        {singleLeg ? (
+          <span className={`text-[13px] tabular-nums font-bold w-5 text-right ${winnerIsA ? "text-foreground" : "text-muted-foreground"}`}>
+            {tie.teamAGoals ?? "–"}
+          </span>
+        ) : (
+          <div className="flex gap-1">
+            {scoreCell(l1A)}
+            {scoreCell(l2A)}
+          </div>
+        )}
       </div>
-      {isFinal && match.venue && isFinished && (
-        <div className="bg-card pb-1.5 px-2 text-center border-t border-border/30">
-          <span className="text-[10px] text-muted-foreground">{match.venue}</span>
+
+      <div className="mx-3 h-px bg-border/40" />
+
+      {/* Team B row */}
+      <div className={`flex items-center gap-2 px-3 py-[7px] ${winnerIsB ? "bg-primary/[0.06]" : ""}`}>
+        <img
+          src={tie.teamB.crest} alt={tie.teamB.shortName}
+          className="w-[15px] h-[15px] object-contain flex-shrink-0"
+          onError={e => { (e.target as HTMLImageElement).style.opacity = "0.2"; }}
+        />
+        <span className={`flex-1 text-[11px] truncate leading-tight ${winnerIsB ? "font-bold text-foreground" : "font-medium text-muted-foreground"}`}>
+          {tie.teamB.shortName || tie.teamB.name}
+        </span>
+        {winnerIsB && <span className="text-primary text-[8px] mr-0.5">▲</span>}
+        {singleLeg ? (
+          <span className={`text-[13px] tabular-nums font-bold w-5 text-right ${winnerIsB ? "text-foreground" : "text-muted-foreground"}`}>
+            {tie.teamBGoals ?? "–"}
+          </span>
+        ) : (
+          <div className="flex gap-1">
+            {scoreCell(l1B)}
+            {scoreCell(l2B)}
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      {footerText && (
+        <div className="border-t border-border/30 px-3 py-1.5 bg-muted/20">
+          <span className={`text-[11px] ${footerIsAgg ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
+            {footerText}
+          </span>
         </div>
       )}
     </div>
@@ -152,24 +229,38 @@ function BracketCard({ match, isFinal = false }: { match: LiveMatch; isFinal?: b
 }
 
 function BracketConnector({ numParents, childSlot, totalH, side }: {
-  numParents: number; childSlot: number; totalH: number; side: "left" | "right";
+  numParents: number;
+  childSlot: number;
+  totalH: number;
+  side: "left" | "right";
 }) {
-  const mid = B_CONN / 2;
+  const mid = B_CONN_W / 2;
   const segs: string[] = [];
   for (let q = 0; q < numParents; q++) {
     const pCY  = (q + 0.5) * childSlot * 2;
     const c1CY = (2 * q + 0.5) * childSlot;
     const c2CY = (2 * q + 1.5) * childSlot;
     if (side === "left") {
-      segs.push(`M0,${c1CY}H${mid}`, `M0,${c2CY}H${mid}`, `M${mid},${c1CY}V${c2CY}`, `M${mid},${pCY}H${B_CONN}`);
+      segs.push(
+        `M0,${c1CY}H${mid}`,
+        `M0,${c2CY}H${mid}`,
+        `M${mid},${c1CY}V${c2CY}`,
+        `M${mid},${pCY}H${B_CONN_W}`,
+      );
     } else {
-      segs.push(`M${B_CONN},${c1CY}H${mid}`, `M${B_CONN},${c2CY}H${mid}`, `M${mid},${c1CY}V${c2CY}`, `M${mid},${pCY}H0`);
+      segs.push(
+        `M${B_CONN_W},${c1CY}H${mid}`,
+        `M${B_CONN_W},${c2CY}H${mid}`,
+        `M${mid},${c1CY}V${c2CY}`,
+        `M${mid},${pCY}H0`,
+      );
     }
   }
   return (
-    <svg width={B_CONN} height={totalH} className="flex-shrink-0">
+    <svg width={B_CONN_W} height={totalH} className="flex-shrink-0">
       {segs.map((d, i) => (
-        <path key={i} d={d} stroke="hsl(var(--border))" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        <path key={i} d={d} stroke="hsl(var(--border))" strokeWidth="1.5" fill="none"
+          strokeLinecap="round" strokeLinejoin="round" />
       ))}
     </svg>
   );
@@ -178,9 +269,12 @@ function BracketConnector({ numParents, childSlot, totalH, side }: {
 function FinalConnector({ totalH, side }: { totalH: number; side: "left" | "right" }) {
   const cy = totalH / 2;
   return (
-    <svg width={B_CONN} height={totalH} className="flex-shrink-0">
-      <line x1={side === "left" ? 0 : B_CONN} y1={cy} x2={side === "left" ? B_CONN : 0} y2={cy}
-        stroke="hsl(var(--border))" strokeWidth="1.5" strokeLinecap="round" />
+    <svg width={B_CONN_W} height={totalH} className="flex-shrink-0">
+      <line
+        x1={side === "left" ? 0 : B_CONN_W} y1={cy}
+        x2={side === "left" ? B_CONN_W : 0} y2={cy}
+        stroke="hsl(var(--border))" strokeWidth="1.5" strokeLinecap="round"
+      />
     </svg>
   );
 }
@@ -203,35 +297,31 @@ function KnockoutView({ slug }: { slug: string }) {
         <div className="text-4xl">🏆</div>
         <h3 className="font-bold text-lg">No Knockout Stage Data</h3>
         <p className="text-muted-foreground text-sm max-w-sm mx-auto">
-          Knockout fixtures will appear here once the group stage is complete and the draw has been made.
+          No knockout-stage data available for this season. Knockout fixtures will appear here
+          once the group stage is complete and the draw has been made.
         </p>
       </div>
     );
   }
 
-  // Separate Third Place — it's a side match outside the main tree
   const thirdPlaceRound = data.rounds.find(r => r.stage === "THIRD_PLACE");
   const mainRounds      = data.rounds.filter(r => r.stage !== "THIRD_PLACE");
-  const numRounds       = mainRounds.length;
 
-  // Total height driven by the first (most-match) round
-  const totalH  = (mainRounds[0]?.matches.length ?? 1) * B_SLOT;
+  // Height driven by the round with the most ties
+  const maxTies = Math.max(...mainRounds.map(r => r.ties.length), 1);
+  const totalH  = maxTies * B_SLOT;
 
-  // Slot height doubles each level (0 = first round, numRounds-1 = Final)
-  const getSlot = (li: number) => B_SLOT * Math.pow(2, li);
-  const getTop  = (mi: number, li: number) => { const s = getSlot(li); return mi * s + (s - B_CARD_H) / 2; };
+  // Slot height for a given round = proportional to how few ties there are
+  const slotFor = (tieCount: number) => totalH / tieCount;
+  const topFor  = (ti: number, slot: number) => ti * slot + (slot - B_TIE_H) / 2;
 
-  const RoundLabel = ({ label, gold }: { label: string; gold?: boolean }) => (
-    <div className="h-7 flex items-end justify-center pb-1">
-      <span className={`text-[10px] font-bold uppercase tracking-widest whitespace-nowrap
-        ${gold ? "text-yellow-600 dark:text-yellow-400" : "text-muted-foreground"}`}>
-        {label}
-      </span>
-    </div>
-  );
+  // Draw a connector between round[i] → round[i+1] only when tie count halves (strict 2:1)
+  const canConnect = (i: number) =>
+    i < mainRounds.length - 1 &&
+    mainRounds[i].ties.length === mainRounds[i + 1].ties.length * 2;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {data.isLive && (
         <div className="flex items-center gap-2 text-primary text-sm font-semibold">
           <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
@@ -239,50 +329,71 @@ function KnockoutView({ slug }: { slug: string }) {
         </div>
       )}
 
-      <div className="overflow-x-auto pb-3 -mx-1 px-1">
+      <div className="overflow-x-auto pb-4 -mx-1 px-1">
         <div className="flex items-start" style={{ minWidth: "max-content" }}>
 
-          {/* ── All rounds left → right ── */}
           {mainRounds.map((round, li) => {
-            const isFinal  = li === numRounds - 1;
-            const slot     = getSlot(li);
-            const cardW    = isFinal ? 212 : B_CARD_W;
-            const next     = mainRounds[li + 1];
+            const isFinal   = round.stage === "FINAL";
+            const singleLeg = round.ties.every(t => t.leg2 === null);
+            const slot      = slotFor(round.ties.length);
+            const showConn  = canConnect(li);
+            const nextRound = mainRounds[li + 1];
 
             return (
               <div key={round.stage} className="flex items-start flex-shrink-0">
-                {/* Column */}
-                <div className="flex flex-col flex-shrink-0" style={{ width: cardW }}>
-                  <RoundLabel label={isFinal ? "🏆 Final" : round.label} gold={isFinal} />
-                  <div className="relative" style={{ height: totalH }}>
-                    {round.matches.map((m, mi) => (
-                      <div key={m.id} className="absolute" style={{ top: getTop(mi, li), width: cardW }}>
-                        <BracketCard match={m} isFinal={isFinal} />
-                      </div>
-                    ))}
-                    {round.matches.length === 0 && (
+
+                {/* Round column */}
+                <div className="flex flex-col flex-shrink-0" style={{ width: B_TIE_W }}>
+                  {/* Round label */}
+                  <div className="h-8 flex items-end justify-center pb-1">
+                    <span className={`text-[10px] font-bold uppercase tracking-widest whitespace-nowrap ${
+                      isFinal ? "text-yellow-600 dark:text-yellow-400" : "text-muted-foreground"
+                    }`}>
+                      {round.label}
+                    </span>
+                  </div>
+
+                  {/* Cards positioned absolutely within a fixed-height container */}
+                  <div className="relative flex-shrink-0" style={{ height: totalH }}>
+                    {round.ties.length === 0 ? (
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="rounded-lg border-2 border-dashed border-border/40 flex items-center justify-center"
-                          style={{ width: cardW, height: B_CARD_H }}>
+                        <div
+                          className="rounded-2xl border-2 border-dashed border-border/40 flex items-center justify-center"
+                          style={{ width: B_TIE_W, height: B_TIE_H }}
+                        >
                           <span className="text-xs text-muted-foreground">TBD</span>
                         </div>
                       </div>
+                    ) : (
+                      round.ties.map((tie, ti) => (
+                        <div key={tie.id} className="absolute" style={{ top: topFor(ti, slot), width: B_TIE_W }}>
+                          <TieCard tie={tie} isFinal={isFinal} singleLeg={singleLeg} />
+                        </div>
+                      ))
                     )}
                   </div>
                 </div>
 
                 {/* Connector to next round */}
-                {!isFinal && next && (
-                  <div className="flex flex-col flex-shrink-0" style={{ width: B_CONN }}>
-                    <div className="h-7" />
-                    <BracketConnector
-                      numParents={next.matches.length}
-                      childSlot={slot}
-                      totalH={totalH}
-                      side="left"
-                    />
+                {nextRound && (
+                  <div className="flex flex-col flex-shrink-0" style={{ width: B_CONN_W }}>
+                    <div className="h-8" />
+                    {showConn ? (
+                      <BracketConnector
+                        numParents={nextRound.ties.length}
+                        childSlot={slot}
+                        totalH={totalH}
+                        side="left"
+                      />
+                    ) : isFinal ? (
+                      <FinalConnector totalH={totalH} side="left" />
+                    ) : (
+                      /* Same-count rounds: show a simple gap, no connecting lines */
+                      <div style={{ width: B_CONN_W, height: totalH }} />
+                    )}
                   </div>
                 )}
+
               </div>
             );
           })}
@@ -291,26 +402,37 @@ function KnockoutView({ slug }: { slug: string }) {
       </div>
 
       {/* Third Place (World Cup etc.) */}
-      {thirdPlaceRound && thirdPlaceRound.matches[0] && (
+      {thirdPlaceRound && thirdPlaceRound.ties[0] && (
         <div className="pt-1 border-t border-border/40">
-          <div className="flex flex-col items-start gap-1">
+          <div className="flex flex-col items-start gap-2">
             <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
               {thirdPlaceRound.label}
             </span>
-            <BracketCard match={thirdPlaceRound.matches[0]} />
+            <TieCard tie={thirdPlaceRound.ties[0]} singleLeg />
           </div>
         </div>
       )}
 
-      <div className="flex flex-wrap gap-5 text-xs text-muted-foreground">
+      {/* Legend */}
+      <div className="flex flex-wrap gap-5 text-xs text-muted-foreground pt-1">
         <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded bg-emerald-500/20 border border-emerald-500/50 inline-block" />
-          Winner / advancing
+          <span className="text-primary font-bold">▲</span>
+          Tie winner / advancing
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-primary animate-pulse inline-block" />
-          Live match
+          <span className="w-5 text-center text-[9px] font-bold uppercase text-muted-foreground/60 border border-border rounded px-1">L1</span>
+          First leg score
         </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-5 text-center text-[9px] font-bold uppercase text-muted-foreground/60 border border-border rounded px-1">L2</span>
+          Second leg score
+        </span>
+        {data.isLive && (
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-primary animate-pulse inline-block" />
+            Live match
+          </span>
+        )}
       </div>
     </div>
   );

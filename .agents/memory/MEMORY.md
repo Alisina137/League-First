@@ -1,0 +1,1 @@
+- [Knockout bracket two-leg architecture](knockout-bracket.md) — ties are paired server-side; frontend uses TieLeg/KnockoutTie types not raw LiveMatch.

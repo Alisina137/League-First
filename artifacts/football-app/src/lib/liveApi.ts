@@ -42,11 +42,31 @@ export interface LiveMatch {
   leagueEmblem: string;
 }
 
+export interface TieLeg {
+  matchId: number;
+  date: string;
+  status: "live" | "upcoming" | "finished";
+  homeTeamId: number;
+  homeScore: number | null;
+  awayScore: number | null;
+}
+
+export interface KnockoutTie {
+  id: string;
+  teamA: { id: number; name: string; shortName: string; crest: string };
+  teamB: { id: number; name: string; shortName: string; crest: string };
+  leg1: TieLeg | null;
+  leg2: TieLeg | null;
+  teamAGoals: number | null;
+  teamBGoals: number | null;
+  winnerId: number | null;
+}
+
 export interface KnockoutRound {
   stage: string;
   label: string;
   order: number;
-  matches: LiveMatch[];
+  ties: KnockoutTie[];
 }
 
 export interface KnockoutData {

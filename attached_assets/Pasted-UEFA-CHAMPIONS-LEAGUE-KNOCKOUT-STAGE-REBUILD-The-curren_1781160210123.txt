@@ -1,0 +1,181 @@
+UEFA CHAMPIONS LEAGUE KNOCKOUT STAGE REBUILD
+
+The current knockout bracket is showing misleading and incorrect data. The bracket must be rebuilt to match real UEFA knockout logic and the UI style shown in the reference screenshot.
+
+====================================
+DATA LOGIC FIXES (MOST IMPORTANT)
+====================================
+
+1. NEVER use group-stage standings data to generate knockout fixtures.
+
+2. Knockout matches must ONLY come from actual knockout fixtures returned by the football API.
+
+3. Each bracket matchup must be built using:
+   - home team
+   - away team
+   - first leg score
+   - second leg score
+   - aggregate score
+   - winner
+   - round
+
+4. Do not simulate or infer winners.
+
+5. If aggregate data is unavailable:
+   - calculate aggregate from both legs
+   - home_leg1 + away_leg2
+   - away_leg1 + home_leg2
+
+6. If only one leg exists:
+   - show current score
+   - show "First Leg"
+   - do not display aggregate winner yet
+
+7. If fixture data is missing:
+   - show "Match data unavailable"
+   - never show incorrect teams or fake scores
+
+====================================
+ROUND STRUCTURE
+====================================
+
+Build the bracket using actual competition stages:
+
+Playoffs
+Round of 16
+Quarter Finals
+Semi Finals
+Final
+
+Only display rounds that exist for the selected season.
+
+====================================
+UI REDESIGN
+====================================
+
+Redesign the bracket to look similar to the second screenshot.
+
+Each matchup card should contain:
+
+------------------------------------
+Team A logo + short name
+Team B logo + short name
+
+Leg 1 score
+Leg 2 score
+
+Aggregate score
+
+Winner indicator
+------------------------------------
+
+Example:
+
+L1    L2
+
+LIV
+PSG
+
+0     0
+2     2
+
+Aggregate: 4 - 0
+
+====================================
+MATCH CARD DESIGN
+====================================
+
+Card styling:
+
+- rounded corners (16px)
+- subtle border
+- clean white/dark background
+- compact spacing
+- team logos on right side
+- aggregate displayed at bottom
+- winner highlighted
+
+Winner row:
+- bold text
+- accent color
+- small triangle indicator
+
+====================================
+RESPONSIVE BEHAVIOR
+====================================
+
+Desktop:
+- horizontal bracket layout
+
+Tablet:
+- horizontal scroll
+
+Mobile:
+- swipeable bracket
+- keep rounds readable
+- do not stack entire tournament vertically
+
+====================================
+FINAL MATCH
+====================================
+
+Final should appear centered.
+
+Show:
+
+Final
+Team A
+Team B
+Score
+Winner
+
+If final not played:
+show scheduled fixture information.
+
+====================================
+DATA VALIDATION
+====================================
+
+Before rendering any matchup:
+
+Verify:
+
+- team names exist
+- team logos exist
+- fixture ids exist
+- scores are valid numbers
+
+If validation fails:
+hide the matchup instead of showing incorrect data.
+
+====================================
+NO FAKE DATA RULE
+====================================
+
+Never create bracket entries from:
+- standings
+- group rankings
+- placeholder arrays
+- hardcoded teams
+
+Render ONLY API-confirmed knockout fixtures.
+
+If API does not provide knockout data,
+display:
+
+"No knockout-stage data available for this season."
+
+instead of showing misleading information.
+
+====================================
+EXPECTED RESULT
+====================================
+
+The knockout stage should visually resemble the reference image:
+- leg-by-leg scores
+- aggregate scores
+- clear winners
+- accurate progression
+- centered final
+- real API data only
+- no misleading group-stage generated matchups
