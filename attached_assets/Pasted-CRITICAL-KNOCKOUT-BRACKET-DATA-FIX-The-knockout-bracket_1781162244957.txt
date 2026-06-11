@@ -1,0 +1,215 @@
+CRITICAL KNOCKOUT BRACKET DATA FIX
+
+The knockout bracket is currently displaying incorrect progression and potentially incorrect aggregate scores because fixtures are being paired incorrectly.
+
+====================================
+ROOT CAUSE TO FIX
+====================================
+
+DO NOT build knockout ties using:
+
+- array index
+- fixture order
+- match order returned by API
+- visual bracket position
+
+The current implementation appears to be matching first-leg and second-leg fixtures by position instead of by actual tie relationship.
+
+This causes:
+
+- wrong aggregate scores
+- wrong winners
+- wrong progression to next rounds
+- teams advancing incorrectly
+
+====================================
+CORRECT TIE GROUPING LOGIC
+====================================
+
+For every knockout round:
+
+Round of 16
+Quarter Finals
+Semi Finals
+
+Group fixtures by the two participating teams.
+
+Example:
+
+Real Madrid vs Bayern
+Bayern vs Real Madrid
+
+These two fixtures belong to the SAME tie.
+
+Create a unique tie key:
+
+sort(teamA, teamB)
+
+Example:
+
+"Bayern-Real Madrid"
+
+Both legs must map to the same tie key regardless of home/away order.
+
+====================================
+PAIRING ALGORITHM
+====================================
+
+Step 1:
+
+Collect all fixtures for a round.
+
+Step 2:
+
+Group fixtures by sorted team ids.
+
+Example:
+
+fixture1:
+home = Bayern
+away = Real Madrid
+
+fixture2:
+home = Real Madrid
+away = Bayern
+
+Tie Key:
+"Bayern_RealMadrid"
+
+Step 3:
+
+Store both fixtures inside the same tie.
+
+Step 4:
+
+Determine:
+
+first leg
+second leg
+
+using actual match dates.
+
+Earlier date = Leg 1
+Later date = Leg 2
+
+Never assume API order is correct.
+
+====================================
+AGGREGATE CALCULATION
+====================================
+
+For a two-leg tie:
+
+Team A aggregate =
+Leg1 TeamA goals +
+Leg2 TeamA goals
+
+Team B aggregate =
+Leg1 TeamB goals +
+Leg2 TeamB goals
+
+Example:
+
+Leg1:
+PSG 3-2 Liverpool
+
+Leg2:
+Liverpool 0-2 PSG
+
+Aggregate:
+
+PSG 5
+Liverpool 2
+
+Winner:
+PSG
+
+====================================
+WINNER VALIDATION
+====================================
+
+Before displaying a winner:
+
+Verify:
+
+winner aggregate >
+loser aggregate
+
+If not:
+
+recalculate tie.
+
+Do not trust pre-rendered winner values.
+
+====================================
+BRACKET PROGRESSION
+====================================
+
+Quarter Final participants must ONLY be winners from Round of 16.
+
+Semi Final participants must ONLY be winners from Quarter Finals.
+
+Final participants must ONLY be winners from Semi Finals.
+
+Run validation:
+
+Every team appearing in a later round must exist as a winner in the previous round.
+
+If not:
+
+Log error:
+"Invalid bracket progression detected"
+
+and rebuild progression.
+
+====================================
+CONSISTENCY CHECK
+====================================
+
+For every tie:
+
+Check:
+
+Aggregate score equals sum of both legs.
+
+Winner displayed equals aggregate winner.
+
+Advancing team equals winner.
+
+If any mismatch exists:
+
+Do not render the tie.
+
+Show:
+
+"Bracket data inconsistency detected"
+
+instead.
+
+====================================
+DEBUG MODE
+====================================
+
+Temporarily add console logs:
+
+Round:
+Tie Key:
+Leg1 Fixture ID:
+Leg2 Fixture ID:
+Aggregate:
+Winner:
+
+This will help identify incorrectly paired fixtures.
+
+====================================
+EXPECTED RESULT
+====================================
+
+After this fix:
+
+- every two-leg tie is paired correctly
+- aggregate scores are accurate
+- winners are accurate
+- progression is accurate
+- no team appears in a round unless it legitimately advanced
+- bracket reflects real competition results rather than fixture order

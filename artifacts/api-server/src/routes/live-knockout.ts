@@ -85,39 +85,41 @@ function toLeg(m: LiveMatch): TieLeg {
 }
 
 function buildTies(matches: LiveMatch[]): KnockoutTie[] {
-  // Sort earliest first — first encounter = leg 1
-  const sorted = [...matches].sort(
-    (a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime()
-  );
+  // ── Step 1: group fixtures by sorted team-id pair (tie key) ──────────────
+  // This ensures we never rely on array index, fixture order, or visual
+  // bracket position — the two legs of a tie are always united by the same key
+  // regardless of home/away direction.
+  const tieMap = new Map<string, LiveMatch[]>();
 
-  const used = new Set<number>();
+  for (const m of matches) {
+    if (!m.homeTeam?.id || !m.awayTeam?.id || !m.homeTeam.name || !m.awayTeam.name) continue;
+    const ids = [m.homeTeam.id, m.awayTeam.id].sort((a, b) => a - b);
+    const key = `${ids[0]}_${ids[1]}`;
+    if (!tieMap.has(key)) tieMap.set(key, []);
+    tieMap.get(key)!.push(m);
+  }
+
   const ties: KnockoutTie[] = [];
 
-  for (const m1 of sorted) {
-    if (used.has(m1.id)) continue;
+  for (const [tieKey, legs] of tieMap.entries()) {
+    // ── Step 2: sort by date — earlier date = Leg 1 ─────────────────────────
+    // Never assume API order is correct.
+    legs.sort((a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime());
 
-    // Data validation: require team names and ids
-    if (!m1.homeTeam?.id || !m1.awayTeam?.id || !m1.homeTeam.name || !m1.awayTeam.name) continue;
+    const m1 = legs[0];
+    const m2 = legs[1] ?? null;
 
-    used.add(m1.id);
-
-    // Find return leg: same two teams, home/away swapped, not yet used
-    const returnLeg = sorted.find(m2 =>
-      !used.has(m2.id) &&
-      m2.homeTeam.id === m1.awayTeam.id &&
-      m2.awayTeam.id === m1.homeTeam.id
-    );
-
-    if (returnLeg) used.add(returnLeg.id);
-
-    // Team A = home team in leg 1 (so leg1 home goals = teamA leg1 goals)
+    // teamA = home side in leg 1
     const teamA = { id: m1.homeTeam.id, name: m1.homeTeam.name, shortName: m1.homeTeam.shortName, crest: m1.homeTeam.crest };
     const teamB = { id: m1.awayTeam.id, name: m1.awayTeam.name, shortName: m1.awayTeam.shortName, crest: m1.awayTeam.crest };
 
     const leg1 = toLeg(m1);
-    const leg2 = returnLeg ? toLeg(returnLeg) : null;
+    const leg2 = m2 ? toLeg(m2) : null;
 
-    // Aggregate: teamAGoals = leg1 home + leg2 away (teamA was home in L1, away in L2)
+    // ── Step 3: aggregate calculation ────────────────────────────────────────
+    // Derive teamA/teamB goals from each leg's home/away perspective so the
+    // maths is correct even if leg2 is a neutral-venue match or the API
+    // returns both legs with the same home side (edge case).
     let teamAGoals: number | null = null;
     let teamBGoals: number | null = null;
 
@@ -125,35 +127,65 @@ function buildTies(matches: LiveMatch[]): KnockoutTie[] {
 
     if (leg1Done) {
       if (!leg2) {
-        // Single-leg (Final, WC knockout rounds)
+        // Single-leg tie (Final, WC knockout rounds)
         teamAGoals = leg1.homeScore!;
         teamBGoals = leg1.awayScore!;
       } else {
         const leg2Done = leg2.status === "finished" && leg2.homeScore !== null && leg2.awayScore !== null;
         if (leg2Done) {
-          // teamA was home in leg1, away in leg2
-          teamAGoals = leg1.homeScore! + leg2.awayScore!;
-          // teamB was away in leg1, home in leg2
-          teamBGoals = leg1.awayScore! + leg2.homeScore!;
+          // Determine which side teamA is in leg2 via homeTeamId (not position)
+          const leg2HomeIsTeamA = leg2.homeTeamId === teamA.id;
+          if (leg2HomeIsTeamA) {
+            // teamA is home in both legs (unusual — neutral venue, etc.)
+            teamAGoals = leg1.homeScore! + leg2.homeScore!;
+            teamBGoals = leg1.awayScore! + leg2.awayScore!;
+          } else {
+            // Normal two-leg: teamA was home in L1, away in L2
+            teamAGoals = leg1.homeScore! + leg2.awayScore!;
+            teamBGoals = leg1.awayScore! + leg2.homeScore!;
+          }
         }
-        // If leg2 not done yet: leave aggregate null — partial data
+        // Leg 2 not yet finished — leave aggregate null (partial data)
       }
     }
 
-    // Winner: only deterministic if aggregate is unambiguous (strict inequality)
+    // ── Step 4: winner determination & consistency validation ────────────────
+    // Only assign a winner when aggregate is strictly unambiguous.
     let winnerId: number | null = null;
     const tieComplete = !leg2
       ? leg1Done
-      : leg1Done && leg2?.status === "finished" && leg2?.homeScore !== null && leg2?.awayScore !== null;
+      : leg1Done && leg2.status === "finished" && leg2.homeScore !== null && leg2.awayScore !== null;
 
     if (tieComplete && teamAGoals !== null && teamBGoals !== null) {
       if (teamAGoals > teamBGoals) winnerId = teamA.id;
       else if (teamBGoals > teamAGoals) winnerId = teamB.id;
-      // Equal aggregate → ET/pens required — cannot infer winner from scores
+      // Equal aggregate → requires ET/pens — cannot infer winner from scores alone
     }
 
+    // ── Consistency check ────────────────────────────────────────────────────
+    if (winnerId !== null && teamAGoals !== null && teamBGoals !== null) {
+      const expectedWinner = teamAGoals > teamBGoals ? teamA.id
+        : teamBGoals > teamAGoals ? teamB.id
+        : null;
+      if (expectedWinner !== winnerId) {
+        console.error(
+          `[Knockout] INCONSISTENCY detected — Tie: ${tieKey} | ` +
+          `Agg: ${teamAGoals}-${teamBGoals} | winnerId: ${winnerId} | expected: ${expectedWinner} — skipping tie`,
+        );
+        continue;
+      }
+    }
+
+    // ── Debug log ────────────────────────────────────────────────────────────
+    console.debug(
+      `[Knockout] Tie: ${tieKey} | ${teamA.shortName} vs ${teamB.shortName} | ` +
+      `Leg1 ID: ${m1.id} | Leg2 ID: ${m2?.id ?? "none"} | ` +
+      `Agg: ${teamAGoals ?? "?"}-${teamBGoals ?? "?"} | ` +
+      `Winner: ${winnerId === teamA.id ? teamA.shortName : winnerId === teamB.id ? teamB.shortName : "TBD"}`,
+    );
+
     ties.push({
-      id: returnLeg ? `${m1.id}-${returnLeg.id}` : `${m1.id}`,
+      id: m2 ? `${m1.id}-${m2.id}` : `${m1.id}`,
       teamA, teamB, leg1, leg2,
       teamAGoals, teamBGoals, winnerId,
     });
