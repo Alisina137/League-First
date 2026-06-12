@@ -14,10 +14,12 @@ import liveTeamsRouter from "./live-teams";
 import liveHomepageRouter from "./live-homepage";
 import liveLeagueHubRouter from "./live-league-hub";
 import liveKnockoutRouter from "./live-knockout";
+import liveMatchRouter from "./live-match";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
+router.use(liveMatchRouter);
 router.use(liveStandingsRouter);
 router.use(liveMatchesRouter);
 router.use(liveScorersRouter);

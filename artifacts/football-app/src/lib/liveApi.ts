@@ -117,6 +117,16 @@ export interface LiveHomepage {
   competitions: Competition[];
 }
 
+export interface MatchDetailsData {
+  match: LiveMatch & {
+    competition: { code: string; name: string; emblem: string; country: string };
+  };
+  standings: LiveStanding[];
+  h2h: LiveMatch[];
+  homeStanding: LiveStanding | null;
+  awayStanding: LiveStanding | null;
+}
+
 export const COMPETITIONS: Competition[] = [
   { slug: "premier-league",    name: "Premier League",        country: "England",      emblem: "https://crests.football-data.org/PL.png",                       code: "PL"  },
   { slug: "la-liga",           name: "La Liga",               country: "Spain",        emblem: "https://crests.football-data.org/PD.png",                       code: "PD"  },

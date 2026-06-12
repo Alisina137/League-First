@@ -12,6 +12,7 @@ import Teams from "./pages/Teams";
 import Players from "./pages/Players";
 import Bookmarks from "./pages/Bookmarks";
 import Settings from "./pages/Settings";
+import MatchDetails from "./pages/MatchDetails";
 import { ThemeProvider } from "./context/ThemeContext";
 
 const queryClient = new QueryClient({
@@ -36,6 +37,7 @@ function Router() {
         <Route path="/players" component={Players} />
         <Route path="/bookmarks" component={Bookmarks} />
         <Route path="/settings" component={Settings} />
+        <Route path="/match/:matchId" component={MatchDetails} />
         <Route component={NotFound} />
       </Switch>
     </Layout>

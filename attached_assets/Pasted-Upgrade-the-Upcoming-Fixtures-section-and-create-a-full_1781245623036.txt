@@ -1,0 +1,290 @@
+Upgrade the Upcoming Fixtures section and create a full Match Details experience.
+
+GOAL:
+Every fixture card on the Home page must be clickable and open a dedicated Match Details page similar to Flashscore/Sofascore/FotMob.
+
+========================================
+1. UPCOMING FIXTURES IMPROVEMENTS
+========================================
+
+Replace the current implementation with:
+
+- Display the next 4 upcoming fixtures sorted by kickoff time.
+- Each fixture card must be fully clickable.
+- Clicking a card navigates to:
+
+/match/:matchId
+
+Each fixture card should show:
+
+✓ Competition logo + name
+✓ Home team logo + name
+✓ Away team logo + name
+✓ Match date
+✓ Match time
+✓ Stadium (if available)
+✓ Live countdown timer
+✓ Small arrow icon indicating clickability
+
+Countdown example:
+
+2d 15h 42m
+18h 12m
+45m
+
+The countdown must update automatically every second.
+
+If kickoff time has passed:
+- Replace countdown with:
+"Match Started"
+or
+"FT" if finished.
+
+Add a "View All Fixtures" button below the cards that opens the Matches page filtered to Upcoming matches.
+
+========================================
+2. MATCH DETAILS PAGE
+========================================
+
+Create a dedicated Match Details page.
+
+Route:
+
+/match/:matchId
+
+Page Header should contain:
+
+- Competition name
+- Stage / Round / Group
+- Matchday
+- Home team logo
+- Home team name
+- Away team logo
+- Away team name
+- Team rankings if available
+- Stadium name
+- City
+- Local kickoff date & time
+- Live countdown timer
+- Share button
+
+========================================
+3. MATCH TABS
+========================================
+
+Create tabs:
+
+Overview
+Lineups
+Stats
+H2H
+Standings
+News
+
+========================================
+4. OVERVIEW TAB
+========================================
+
+Show:
+
+A. Match Odds
+- Home Win
+- Draw
+- Away Win
+
+B. Team Form
+
+Last 5 matches:
+
+W
+D
+L
+
+For both teams.
+
+C. Head To Head Summary
+
+Show:
+
+Wins
+Draws
+Losses
+
+Between the two teams.
+
+D. Key Players
+
+Show top players from both teams:
+
+- Name
+- Position
+- Goals
+- Assists
+
+E. Match Information Card
+
+Competition
+Stage
+Group
+Matchday
+Date
+Time
+Venue
+Referee
+TV Channels
+
+========================================
+5. LINEUPS TAB
+========================================
+
+Display:
+
+- Starting XI
+- Formation
+- Substitutes
+- Coach
+
+If lineup data is unavailable:
+
+Show:
+"Lineups not announced yet."
+
+========================================
+6. STATS TAB
+========================================
+
+Display comparison bars:
+
+Possession
+Shots
+Shots on Target
+Corners
+Fouls
+Yellow Cards
+Red Cards
+Offsides
+Pass Accuracy
+
+Use visual progress bars.
+
+========================================
+7. H2H TAB
+========================================
+
+Show last 5 meetings:
+
+Date
+Competition
+Home Team
+Away Team
+Score
+Result
+
+========================================
+8. STANDINGS TAB
+========================================
+
+Display league/group standings.
+
+Columns:
+
+Position
+Team
+Played
+Won
+Drawn
+Lost
+Goals For
+Goals Against
+Goal Difference
+Points
+
+Highlight the current teams.
+
+========================================
+9. NEWS TAB
+========================================
+
+Show match-related news articles.
+
+Each article should contain:
+
+Thumbnail
+Title
+Source
+Publish Date
+
+If no news exists:
+
+"No news available."
+
+========================================
+10. EXTRA FEATURES
+========================================
+
+Add:
+
+✓ Real-time countdown timer
+✓ Local timezone conversion
+✓ Loading skeletons
+✓ Error states
+✓ Empty states
+✓ Responsive mobile layout
+✓ Responsive tablet layout
+✓ Responsive desktop layout
+
+========================================
+11. UX IMPROVEMENTS
+========================================
+
+Add:
+
+✓ Back button
+✓ Smooth page transitions
+✓ Hover effects on fixture cards
+✓ Card elevation on hover
+✓ Better spacing
+✓ Modern Sofascore/FotMob style layout
+
+========================================
+12. PERFORMANCE
+========================================
+
+- Reuse existing fetched data whenever possible.
+- Avoid duplicate API requests.
+- Cache match details.
+- Use lazy loading for tabs.
+
+========================================
+13. DATA RULES
+========================================
+
+DO NOT hardcode any match data.
+
+Use existing APIs and existing football data sources.
+
+If data is unavailable:
+- Show graceful fallbacks.
+- Never show broken UI.
+
+========================================
+14. TESTING
+========================================
+
+Verify:
+
+✓ Fixture cards are clickable.
+✓ Match details page loads correctly.
+✓ Countdown updates every second.
+✓ Tabs work.
+✓ Mobile responsive.
+✓ No console errors.
+✓ No broken API requests.
+
+After implementation provide:
+
+1. Files modified.
+2. New routes created.
+3. Components created.
+4. APIs used.
+5. Any limitations.
