@@ -13,30 +13,18 @@ interface LiveHomepage {
   hasStarted: boolean;
 }
 
-function MatchCard({ match }: { match: LiveMatch }) {
-  const isLive = match.status === "live";
-  const isUpcoming = match.status === "upcoming";
-  const date = new Date(match.matchDate);
-  const timeStr = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  const dateStr = date.toLocaleDateString([], { month: "short", day: "numeric" });
-
+function LiveMatchCard({ match }: { match: LiveMatch }) {
   return (
-    <div className={`bg-card border rounded-xl p-4 transition-all hover:border-primary/40 ${isLive ? "border-primary/50 shadow-[0_0_12px_rgba(0,179,131,0.12)]" : "border-border"}`}>
+    <div className="bg-card border border-primary/50 rounded-xl p-4 shadow-[0_0_12px_rgba(0,179,131,0.12)] transition-all hover:border-primary/70">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-1.5">
           <img src={match.leagueEmblem} alt="" className="w-4 h-4 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
           <span className="text-xs text-muted-foreground font-medium truncate max-w-[110px]">{match.leagueName}</span>
         </div>
-        {isLive ? (
-          <span className="flex items-center gap-1 text-xs font-bold text-primary">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-            {match.minute ? `${match.minute}'` : "LIVE"}
-          </span>
-        ) : isUpcoming ? (
-          <span className="text-xs text-muted-foreground">{dateStr} · {timeStr}</span>
-        ) : (
-          <span className="text-xs text-muted-foreground">FT</span>
-        )}
+        <span className="flex items-center gap-1 text-xs font-bold text-primary">
+          <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+          {match.minute ? `${match.minute}'` : "LIVE"}
+        </span>
       </div>
       <div className="space-y-2">
         {[
@@ -48,11 +36,46 @@ function MatchCard({ match }: { match: LiveMatch }) {
               <img src={team.crest} alt={team.name} className="w-6 h-6 object-contain flex-shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
               <span className="font-semibold text-sm truncate">{team.shortName ?? team.name}</span>
             </div>
-            <span className={`text-lg font-bold tabular-nums ml-2 ${isLive ? "text-primary" : "text-foreground"}`}>
-              {score !== null ? score : "—"}
-            </span>
+            <span className="text-lg font-bold tabular-nums ml-2 text-primary">{score ?? "—"}</span>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function UpcomingFixtureCard({ match }: { match: LiveMatch }) {
+  const date = new Date(match.matchDate);
+  const dateStr = date.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
+  const timeStr = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+  return (
+    <div className="bg-card border border-border rounded-xl p-4 hover:border-primary/40 hover:shadow-sm transition-all">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <img src={match.leagueEmblem} alt="" className="w-4 h-4 object-contain flex-shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+          <span className="text-xs text-muted-foreground font-medium truncate">{match.leagueName}</span>
+        </div>
+        <span className="text-xs font-semibold text-foreground/70 whitespace-nowrap ml-2 flex-shrink-0">
+          {dateStr}
+        </span>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <div className="flex flex-col items-center gap-1 flex-1 min-w-0">
+          <img src={match.homeTeam.crest} alt={match.homeTeam.name} className="w-8 h-8 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
+          <span className="text-xs font-semibold text-center leading-tight line-clamp-2">{match.homeTeam.shortName ?? match.homeTeam.name}</span>
+        </div>
+
+        <div className="flex flex-col items-center flex-shrink-0 px-1">
+          <span className="text-sm font-bold text-primary tabular-nums">{timeStr}</span>
+          <span className="text-xs text-muted-foreground font-medium mt-0.5">vs</span>
+        </div>
+
+        <div className="flex flex-col items-center gap-1 flex-1 min-w-0">
+          <img src={match.awayTeam.crest} alt={match.awayTeam.name} className="w-8 h-8 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
+          <span className="text-xs font-semibold text-center leading-tight line-clamp-2">{match.awayTeam.shortName ?? match.awayTeam.name}</span>
+        </div>
       </div>
     </div>
   );
@@ -109,8 +132,8 @@ export default function Home() {
         </section>
         <section>
           <Skeleton className="h-8 w-48 mb-6" />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {Array.from({ length: 8 }).map((_, i) => <MatchCardSkeleton key={i} />)}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => <MatchCardSkeleton key={i} />)}
           </div>
         </section>
       </div>
@@ -122,6 +145,11 @@ export default function Home() {
   }
 
   const { liveMatches = [], upcomingMatches = [], featuredStandings = [], nextFixtureDate = null, hasStarted = true } = data ?? {};
+
+  const upcomingToShow = upcomingMatches
+    .slice()
+    .sort((a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime())
+    .slice(0, 4);
 
   return (
     <div className="space-y-10 pb-10">
@@ -136,7 +164,7 @@ export default function Home() {
         </div>
         {liveMatches.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {liveMatches.map((m) => <MatchCard key={m.id} match={m} />)}
+            {liveMatches.map((m) => <LiveMatchCard key={m.id} match={m} />)}
           </div>
         ) : (
           <div className="text-muted-foreground p-8 bg-card rounded-xl border border-border text-center">
@@ -151,11 +179,17 @@ export default function Home() {
         <div className="lg:col-span-2 space-y-5">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold">Upcoming Fixtures</h2>
-            <Link href="/matches" className="text-sm text-primary hover:underline font-medium">View all</Link>
+            <Link
+              href="/matches?status=upcoming"
+              className="text-sm text-primary hover:underline font-medium"
+            >
+              View All
+            </Link>
           </div>
-          {upcomingMatches.length > 0 ? (
+
+          {upcomingToShow.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {upcomingMatches.slice(0, 12).map((m) => <MatchCard key={m.id} match={m} />)}
+              {upcomingToShow.map((m) => <UpcomingFixtureCard key={m.id} match={m} />)}
             </div>
           ) : (
             <UpcomingEmptyState

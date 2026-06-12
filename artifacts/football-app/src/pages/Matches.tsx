@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useSearch } from "wouter";
 import { apiFetch, COMPETITIONS, type LiveMatch } from "../lib/liveApi";
 import { MatchCardSkeleton, ErrorState, EmptyState } from "../components/Skeleton";
 import { UpcomingEmptyState } from "../components/UpcomingEmptyState";
@@ -63,8 +64,16 @@ function MatchCard({ match }: { match: LiveMatch }) {
   );
 }
 
+const VALID_STATUSES = new Set<StatusFilter>(["all", "live", "upcoming", "finished"]);
+
+function parseStatus(search: string): StatusFilter {
+  const param = new URLSearchParams(search).get("status") as StatusFilter | null;
+  return param && VALID_STATUSES.has(param) ? param : "all";
+}
+
 export default function Matches() {
-  const [status, setStatus] = useState<StatusFilter>("all");
+  const search = useSearch();
+  const [status, setStatus] = useState<StatusFilter>(() => parseStatus(search));
   const [leagueSlug, setLeagueSlug] = useState<string | undefined>();
 
   const qs = new URLSearchParams();
