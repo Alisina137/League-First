@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { ChevronRight } from "lucide-react";
 import { apiFetch, COMPETITIONS, type LiveMatch, type LiveStanding, type Competition } from "../lib/liveApi";
 import { MatchCardSkeleton, Skeleton, ErrorState } from "../components/Skeleton";
 import { UpcomingEmptyState } from "../components/UpcomingEmptyState";
@@ -19,50 +18,55 @@ function matchLink(m: LiveMatch) {
   return `/match/${m.id}?league=${encodeURIComponent(m.leagueSlug)}`;
 }
 
-function useCountdown(target: string): string | null {
-  const [remaining, setRemaining] = useState(new Date(target).getTime() - Date.now());
+function useCountdownStr(target: string): string | null {
+  const calc = () => {
+    const ms = new Date(target).getTime() - Date.now();
+    if (ms <= 0) return null;
+    const h = Math.floor(ms / 3_600_000);
+    const m = Math.floor((ms % 3_600_000) / 60_000);
+    const s = Math.floor((ms % 60_000) / 1_000);
+    if (h >= 24) {
+      const d = Math.floor(h / 24);
+      return `${d}d ${h % 24}h : ${String(m).padStart(2,"0")}m : ${String(s).padStart(2,"0")}s`;
+    }
+    return `${String(h).padStart(2,"0")}h : ${String(m).padStart(2,"0")}m : ${String(s).padStart(2,"0")}s`;
+  };
+  const [cd, setCd] = useState(calc);
   useEffect(() => {
-    const t = setInterval(() => setRemaining(new Date(target).getTime() - Date.now()), 1000);
+    const t = setInterval(() => setCd(calc()), 1000);
     return () => clearInterval(t);
   }, [target]);
-  if (remaining <= 0) return null;
-  const d = Math.floor(remaining / 86_400_000);
-  const h = Math.floor((remaining % 86_400_000) / 3_600_000);
-  const m = Math.floor((remaining % 3_600_000) / 60_000);
-  const s = Math.floor((remaining % 60_000) / 1_000);
-  if (d > 0) return `${d}d ${h}h ${m}m`;
-  if (h > 0) return `${h}h ${m}m`;
-  if (m > 0) return `${m}m ${s}s`;
-  return `${s}s`;
+  return cd;
 }
 
 function LiveMatchCard({ match }: { match: LiveMatch }) {
   return (
     <Link href={matchLink(match)}>
-      <div className="bg-card border border-primary/50 rounded-xl p-4 shadow-[0_0_12px_rgba(0,179,131,0.12)] transition-all hover:border-primary/70 hover:shadow-md hover:-translate-y-0.5 cursor-pointer">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-1.5">
-            <img src={match.leagueEmblem} alt="" className="w-4 h-4 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-            <span className="text-xs text-muted-foreground font-medium truncate max-w-[110px]">{match.leagueName}</span>
+      <div className="group bg-card border border-primary/40 rounded-xl overflow-hidden hover:border-primary hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer">
+        {/* Header bar */}
+        <div className="flex items-center justify-between px-4 py-2.5 bg-secondary/40 border-b border-border">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <img src={match.leagueEmblem} alt="" className="w-4 h-4 object-contain flex-shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+            <span className="text-xs text-muted-foreground font-medium truncate max-w-[120px]">{match.leagueName}</span>
           </div>
           <span className="flex items-center gap-1 text-xs font-bold text-primary">
             <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
             {match.minute ? `${match.minute}'` : "LIVE"}
           </span>
         </div>
-        <div className="space-y-2">
-          {[
-            { team: match.homeTeam, score: match.homeScore },
-            { team: match.awayTeam, score: match.awayScore },
-          ].map(({ team, score }, i) => (
-            <div key={i} className="flex items-center justify-between">
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <img src={team.crest} alt={team.name} className="w-6 h-6 object-contain flex-shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
-                <span className="font-semibold text-sm truncate">{team.shortName ?? team.name}</span>
-              </div>
-              <span className="text-lg font-bold tabular-nums ml-2 text-primary">{score ?? "—"}</span>
-            </div>
-          ))}
+        {/* Teams */}
+        <div className="px-4 py-4 flex items-center gap-3">
+          <div className="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+            <img src={match.homeTeam.crest} alt={match.homeTeam.name} className="w-10 h-10 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
+            <span className="font-semibold text-xs text-center line-clamp-2 leading-tight">{match.homeTeam.shortName ?? match.homeTeam.name}</span>
+          </div>
+          <div className="flex flex-col items-center flex-shrink-0 gap-0.5">
+            <span className="text-xl font-black tabular-nums text-primary">{match.homeScore ?? 0} – {match.awayScore ?? 0}</span>
+          </div>
+          <div className="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+            <img src={match.awayTeam.crest} alt={match.awayTeam.name} className="w-10 h-10 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
+            <span className="font-semibold text-xs text-center line-clamp-2 leading-tight">{match.awayTeam.shortName ?? match.awayTeam.name}</span>
+          </div>
         </div>
       </div>
     </Link>
@@ -70,48 +74,49 @@ function LiveMatchCard({ match }: { match: LiveMatch }) {
 }
 
 function UpcomingFixtureCard({ match }: { match: LiveMatch }) {
-  const countdown = useCountdown(match.matchDate);
+  const countdown = useCountdownStr(match.matchDate);
   const date = new Date(match.matchDate);
-  const dateStr = date.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
+  const dateStr = date.toLocaleDateString([], { month: "short", day: "numeric" });
   const timeStr = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
   return (
     <Link href={matchLink(match)}>
-      <div className="group bg-card border border-border rounded-xl p-4 hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer">
-        <div className="flex items-center justify-between mb-3">
+      <div className="group bg-card border border-border rounded-xl overflow-hidden hover:border-primary/50 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer">
+        {/* Header bar: competition + date */}
+        <div className="flex items-center justify-between px-4 py-2.5 bg-secondary/30 border-b border-border">
           <div className="flex items-center gap-1.5 min-w-0">
             <img src={match.leagueEmblem} alt="" className="w-4 h-4 object-contain flex-shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-            <span className="text-xs text-muted-foreground font-medium truncate">{match.leagueName}</span>
+            <span className="text-xs font-semibold text-muted-foreground truncate">{match.leagueName}</span>
           </div>
-          <div className="flex items-center gap-1.5 ml-2 flex-shrink-0">
-            <span className="text-xs font-semibold text-foreground/70 whitespace-nowrap">{dateStr}</span>
-            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
+          <span className="text-xs font-medium text-muted-foreground flex-shrink-0 ml-2">
+            {dateStr} · {timeStr}
+          </span>
+        </div>
+
+        {/* Teams */}
+        <div className="px-4 py-5 flex items-center gap-2">
+          <div className="flex flex-col items-center gap-2 flex-1 min-w-0">
+            <img src={match.homeTeam.crest} alt={match.homeTeam.name} className="w-12 h-12 object-contain drop-shadow-sm" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
+            <span className="font-bold text-xs text-center line-clamp-2 leading-snug">{match.homeTeam.shortName ?? match.homeTeam.name}</span>
+          </div>
+
+          <div className="flex flex-col items-center flex-shrink-0 px-2 gap-0.5">
+            <span className="text-base font-black text-muted-foreground">vs</span>
+          </div>
+
+          <div className="flex flex-col items-center gap-2 flex-1 min-w-0">
+            <img src={match.awayTeam.crest} alt={match.awayTeam.name} className="w-12 h-12 object-contain drop-shadow-sm" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
+            <span className="font-bold text-xs text-center line-clamp-2 leading-snug">{match.awayTeam.shortName ?? match.awayTeam.name}</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="flex flex-col items-center gap-1 flex-1 min-w-0">
-            <img src={match.homeTeam.crest} alt={match.homeTeam.name} className="w-8 h-8 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
-            <span className="text-xs font-semibold text-center leading-tight line-clamp-2">{match.homeTeam.shortName ?? match.homeTeam.name}</span>
-          </div>
-
-          <div className="flex flex-col items-center flex-shrink-0 px-1 gap-0.5">
-            <span className="text-sm font-bold text-primary tabular-nums">{timeStr}</span>
-            <span className="text-xs text-muted-foreground font-medium">vs</span>
-            {countdown && (
-              <span className="text-[10px] font-semibold text-muted-foreground tabular-nums">{countdown}</span>
-            )}
-          </div>
-
-          <div className="flex flex-col items-center gap-1 flex-1 min-w-0">
-            <img src={match.awayTeam.crest} alt={match.awayTeam.name} className="w-8 h-8 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
-            <span className="text-xs font-semibold text-center leading-tight line-clamp-2">{match.awayTeam.shortName ?? match.awayTeam.name}</span>
-          </div>
+        {/* Countdown footer */}
+        <div className="border-t border-border px-4 py-2 flex items-center justify-center gap-1.5 bg-primary/5 group-hover:bg-primary/10 transition-colors">
+          <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
+          <span className="text-xs font-bold text-primary tabular-nums">
+            {countdown ?? "Match Started"}
+          </span>
         </div>
-
-        {match.venue && (
-          <p className="mt-2.5 text-[10px] text-muted-foreground truncate text-center">📍 {match.venue}</p>
-        )}
       </div>
     </Link>
   );
