@@ -254,58 +254,63 @@ function MatchInfoCard({ data }: { data: MatchDetailsData }) {
   );
 }
 
+function PlaceholderBadge() {
+  return (
+    <span className="w-6 h-6 rounded-sm inline-flex items-center justify-center bg-secondary border border-border text-[10px] font-bold text-muted-foreground/40">
+      ?
+    </span>
+  );
+}
+
 function RecentFormCard({ data }: { data: MatchDetailsData }) {
   const homeForm = (data.homeStanding?.form ?? "").split("").filter(Boolean).slice(-5);
   const awayForm = (data.awayStanding?.form ?? "").split("").filter(Boolean).slice(-5);
-
-  if (homeForm.length === 0 && awayForm.length === 0) return null;
+  const noData = homeForm.length === 0 && awayForm.length === 0;
 
   return (
     <div className="bg-card border border-border rounded-xl p-4">
       <h3 className="font-bold text-sm mb-4">Recent Form</h3>
-      <div className="space-y-3">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2 min-w-0">
-            <img
-              src={data.match.homeTeam.crest}
-              alt=""
-              className="w-5 h-5 object-contain flex-shrink-0"
-              onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }}
-            />
-            <span className="text-xs font-semibold truncate">{data.match.homeTeam.shortName}</span>
-          </div>
-          <div className="flex gap-1">
-            {homeForm.length > 0
-              ? homeForm.map((c, i) => <FormBadge key={i} char={c} />)
-              : <span className="text-xs text-muted-foreground">—</span>
-            }
-          </div>
+      {noData ? (
+        <div className="space-y-3">
+          {[data.match.homeTeam, data.match.awayTeam].map((team) => (
+            <div key={team.id} className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2 min-w-0">
+                <img src={team.crest} alt="" className="w-5 h-5 object-contain flex-shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
+                <span className="text-xs font-semibold truncate">{team.shortName}</span>
+              </div>
+              <div className="flex gap-1">
+                {Array.from({ length: 5 }, (_, i) => <PlaceholderBadge key={i} />)}
+              </div>
+            </div>
+          ))}
+          <p className="text-[11px] text-muted-foreground text-center pt-1">No form data yet for this competition</p>
         </div>
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2 min-w-0">
-            <img
-              src={data.match.awayTeam.crest}
-              alt=""
-              className="w-5 h-5 object-contain flex-shrink-0"
-              onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }}
-            />
-            <span className="text-xs font-semibold truncate">{data.match.awayTeam.shortName}</span>
-          </div>
-          <div className="flex gap-1">
-            {awayForm.length > 0
-              ? awayForm.map((c, i) => <FormBadge key={i} char={c} />)
-              : <span className="text-xs text-muted-foreground">—</span>
-            }
-          </div>
+      ) : (
+        <div className="space-y-3">
+          {[
+            { team: data.match.homeTeam, form: homeForm },
+            { team: data.match.awayTeam, form: awayForm },
+          ].map(({ team, form }) => (
+            <div key={team.id} className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2 min-w-0">
+                <img src={team.crest} alt="" className="w-5 h-5 object-contain flex-shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
+                <span className="text-xs font-semibold truncate">{team.shortName}</span>
+              </div>
+              <div className="flex gap-1">
+                {form.length > 0
+                  ? form.map((c, i) => <FormBadge key={i} char={c} />)
+                  : Array.from({ length: 5 }, (_, i) => <PlaceholderBadge key={i} />)
+                }
+              </div>
+            </div>
+          ))}
         </div>
-      </div>
+      )}
     </div>
   );
 }
 
 function H2HSummaryCard({ data }: { data: MatchDetailsData }) {
-  if (data.h2h.length === 0) return null;
-
   const homeId = data.match.homeTeam.id;
   const awayId = data.match.awayTeam.id;
 
@@ -322,63 +327,114 @@ function H2HSummaryCard({ data }: { data: MatchDetailsData }) {
   return (
     <div className="bg-card border border-border rounded-xl p-4">
       <h3 className="font-bold text-sm mb-4">Head to Head</h3>
-      <div className="flex items-center justify-between text-center">
-        <div className="flex-1">
-          <div className="flex items-center justify-center gap-1.5 mb-1.5">
-            <img
-              src={data.match.homeTeam.crest}
-              alt=""
-              className="w-5 h-5 object-contain"
-              onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }}
-            />
+      {data.h2h.length === 0 ? (
+        <div className="text-center py-3 space-y-2">
+          <div className="flex items-center justify-center gap-4">
+            <div className="flex flex-col items-center gap-1">
+              <img src={data.match.homeTeam.crest} alt="" className="w-8 h-8 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
+            </div>
+            <span className="text-muted-foreground font-bold text-sm">vs</span>
+            <div className="flex flex-col items-center gap-1">
+              <img src={data.match.awayTeam.crest} alt="" className="w-8 h-8 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
+            </div>
           </div>
-          <span className="text-2xl font-black">{homeWins}</span>
-          <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wide mt-0.5">WINS</p>
+          <p className="text-[11px] text-muted-foreground">No previous meetings in this competition</p>
         </div>
-        <div className="flex-1">
-          <span className="text-2xl font-black">{draws}</span>
-          <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wide mt-0.5">DRAWS</p>
-        </div>
-        <div className="flex-1">
-          <div className="flex items-center justify-center gap-1.5 mb-1.5">
-            <img
-              src={data.match.awayTeam.crest}
-              alt=""
-              className="w-5 h-5 object-contain"
-              onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }}
-            />
+      ) : (
+        <>
+          <div className="flex items-center justify-between text-center">
+            <div className="flex-1">
+              <div className="flex items-center justify-center gap-1.5 mb-1.5">
+                <img src={data.match.homeTeam.crest} alt="" className="w-5 h-5 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
+              </div>
+              <span className="text-2xl font-black">{homeWins}</span>
+              <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wide mt-0.5">WINS</p>
+            </div>
+            <div className="flex-1">
+              <span className="text-2xl font-black">{draws}</span>
+              <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wide mt-0.5">DRAWS</p>
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center justify-center gap-1.5 mb-1.5">
+                <img src={data.match.awayTeam.crest} alt="" className="w-5 h-5 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
+              </div>
+              <span className="text-2xl font-black">{awayWins}</span>
+              <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wide mt-0.5">WINS</p>
+            </div>
           </div>
-          <span className="text-2xl font-black">{awayWins}</span>
-          <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wide mt-0.5">WINS</p>
-        </div>
-      </div>
-      <p className="text-center text-[11px] text-muted-foreground mt-3">
-        Last {data.h2h.length} meeting{data.h2h.length !== 1 ? "s" : ""}
-      </p>
+          <p className="text-center text-[11px] text-muted-foreground mt-3">
+            Last {data.h2h.length} meeting{data.h2h.length !== 1 ? "s" : ""}
+          </p>
+        </>
+      )}
     </div>
   );
 }
 
-function MatchOddsCard() {
+function TopPlayersCard({ data }: { data: MatchDetailsData }) {
+  const scorers = data.topScorers ?? [];
+
   return (
     <div className="bg-card border border-border rounded-xl p-4">
-      <div className="flex items-center justify-between mb-4">
+      <h3 className="font-bold text-sm mb-4">Top Players</h3>
+      {scorers.length === 0 ? (
+        <div className="text-center py-3 space-y-1">
+          <p className="text-2xl">⚽</p>
+          <p className="text-xs text-muted-foreground">No scoring data available yet</p>
+        </div>
+      ) : (
+        <div className="space-y-2.5">
+          {scorers.map((s) => (
+            <div key={`${s.player.id}-${s.team.id}`} className="flex items-center gap-3">
+              <img
+                src={s.team.crest}
+                alt=""
+                className="w-6 h-6 object-contain flex-shrink-0"
+                onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }}
+              />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold truncate">{s.player.name}</p>
+                <p className="text-[10px] text-muted-foreground capitalize">
+                  {s.player.position ?? s.team.shortName}
+                </p>
+              </div>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <span className="text-sm font-black tabular-nums text-primary">{s.goals}</span>
+                <span className="text-[10px] text-muted-foreground">Goals</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MatchOddsCard({ data }: { data: MatchDetailsData }) {
+  const home = data.match.homeTeam.shortName;
+  const away = data.match.awayTeam.shortName;
+  const outcomes = [
+    { key: "1", label: home, sublabel: "Home Win" },
+    { key: "X", label: "Draw",  sublabel: "Draw"     },
+    { key: "2", label: away,  sublabel: "Away Win" },
+  ];
+  return (
+    <div className="bg-card border border-border rounded-xl p-4">
+      <div className="flex items-center justify-between mb-3">
         <h3 className="font-bold text-sm">Match Odds</h3>
-        <span className="text-xs text-muted-foreground">Not available</span>
+        <span className="text-[11px] text-muted-foreground bg-secondary rounded-full px-2 py-0.5">Not available</span>
       </div>
       <div className="grid grid-cols-3 gap-2">
-        {[
-          { label: "1", sublabel: "Home Win" },
-          { label: "X", sublabel: "Draw" },
-          { label: "2", sublabel: "Away Win" },
-        ].map(({ label, sublabel }) => (
+        {outcomes.map(({ key, label, sublabel }) => (
           <div
-            key={label}
-            className="flex flex-col items-center bg-secondary/50 rounded-lg p-3 gap-1"
+            key={key}
+            className="flex flex-col items-center bg-secondary rounded-lg px-2 py-3 gap-1.5"
           >
-            <span className="text-xs font-bold text-muted-foreground">{label}</span>
-            <span className="text-base font-black text-muted-foreground/40">—</span>
-            <span className="text-[10px] text-muted-foreground text-center">{sublabel}</span>
+            <span className="text-xs font-black text-foreground/80 w-5 h-5 flex items-center justify-center bg-background rounded-sm border border-border">
+              {key}
+            </span>
+            <span className="text-lg font-black text-muted-foreground/30 tabular-nums">—</span>
+            <span className="text-[10px] text-muted-foreground font-medium text-center truncate w-full text-center">{label}</span>
           </div>
         ))}
       </div>
@@ -391,9 +447,10 @@ function OverviewTab({ data }: { data: MatchDetailsData }) {
     <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
       {/* Left column */}
       <div className="lg:col-span-3 space-y-4">
-        <MatchOddsCard />
+        <MatchOddsCard data={data} />
         <RecentFormCard data={data} />
         <H2HSummaryCard data={data} />
+        <TopPlayersCard data={data} />
       </div>
       {/* Right column */}
       <div className="lg:col-span-2">

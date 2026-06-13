@@ -125,6 +125,7 @@ export interface MatchDetailsData {
   h2h: LiveMatch[];
   homeStanding: LiveStanding | null;
   awayStanding: LiveStanding | null;
+  topScorers: LiveScorer[];
 }
 
 export const COMPETITIONS: Competition[] = [

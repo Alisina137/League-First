@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { getMatches, getStandings, COMPETITIONS } from "../services/footballDataService";
+import { getMatches, getStandings, getScorers, COMPETITIONS } from "../services/footballDataService";
 import type { LiveMatch } from "../services/footballDataService";
 
 const router: IRouter = Router();
@@ -19,15 +19,18 @@ router.get("/live/match/:matchId", async (req, res): Promise<void> => {
 
   try {
     // All data comes from cached provider calls — no extra HTTP requests
-    const [matchesResult, standingsResult] = await Promise.allSettled([
+    const [matchesResult, standingsResult, scorersResult] = await Promise.allSettled([
       getMatches(leagueSlug),
       getStandings(leagueSlug),
+      getScorers(leagueSlug),
     ]);
 
     const allMatches: LiveMatch[] =
       matchesResult.status === "fulfilled" ? matchesResult.value : [];
     const standings =
       standingsResult.status === "fulfilled" ? standingsResult.value : [];
+    const allScorers =
+      scorersResult.status === "fulfilled" ? scorersResult.value : [];
 
     const foundMatch = allMatches.find((m) => m.id === matchId);
     if (!foundMatch) {
@@ -56,6 +59,12 @@ router.get("/live/match/:matchId", async (req, res): Promise<void> => {
     const homeStanding = standings.find((s) => s.team.id === homeId) ?? null;
     const awayStanding = standings.find((s) => s.team.id === awayId) ?? null;
 
+    // Top scorers filtered to the two teams in this match, sorted by goals desc
+    const topScorers = allScorers
+      .filter((s) => s.team.id === homeId || s.team.id === awayId)
+      .sort((a, b) => b.goals - a.goals)
+      .slice(0, 6);
+
     const comp = COMPETITIONS[leagueSlug];
 
     req.log.info(
@@ -78,6 +87,7 @@ router.get("/live/match/:matchId", async (req, res): Promise<void> => {
       h2h,
       homeStanding,
       awayStanding,
+      topScorers,
     });
   } catch (err) {
     req.log.error({ err }, "Failed to fetch match details");
