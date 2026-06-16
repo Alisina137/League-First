@@ -40,8 +40,8 @@ function getSeasonOptions(slug: string): number[] {
   return [2024, 2023, 2022, 2021, 2020, 2019];
 }
 
-function getDefaultSeason(_slug: string): number {
-  return 2024;
+function getDefaultSeason(slug: string): number {
+  return getSeasonOptions(slug)[0];
 }
 
 function formatSeason(season: number, slug: string): string {
@@ -769,10 +769,11 @@ export default function LeagueHub() {
           <div>
             <p className="text-xs font-bold text-primary uppercase tracking-widest mb-0.5">{data.competition.country}</p>
             <h1 className="text-3xl md:text-4xl font-black">{data.competition.name}</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              {standings.length > 0 ? `${standings.length} teams` : ""}
-              {liveMatches.length > 0 && <span className="text-primary font-semibold"> · {liveMatches.length} live now</span>}
-              {isTournament && <span className="ml-1 text-xs font-semibold bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">Tournament</span>}
+            <p className="text-sm text-muted-foreground mt-1 flex items-center flex-wrap gap-1">
+              <span className="font-semibold text-foreground">{formatSeason(selectedSeason, safeSlug)}</span>
+              {standings.length > 0 && <span>· {standings.length} teams</span>}
+              {liveMatches.length > 0 && <span className="text-primary font-semibold">· {liveMatches.length} live now</span>}
+              {isTournament && <span className="text-xs font-semibold bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">Tournament</span>}
             </p>
           </div>
         </div>
