@@ -103,7 +103,12 @@ export default function Matches() {
   return (
     <div className="space-y-6 pb-10">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-3xl font-bold tracking-tight">Matches</h1>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Matches</h1>
+          {status === "upcoming" && (
+            <p className="text-sm text-muted-foreground mt-0.5">Showing fixtures in the next 7 days</p>
+          )}
+        </div>
         <div className="flex flex-wrap gap-2">
           {statusOptions.map((opt) => (
             <button
@@ -156,9 +161,24 @@ export default function Matches() {
           <EmptyState message={status === "live" ? "No live matches right now" : "No matches found for this filter"} />
         )
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {data.map((match) => <MatchCard key={match.id} match={match} />)}
-        </div>
+        (() => {
+          const now = Date.now();
+          const weekAhead = now + 7 * 24 * 60 * 60 * 1000;
+          const filtered = status === "upcoming"
+            ? data.filter(m => {
+                const t = new Date(m.matchDate).getTime();
+                return t >= now && t <= weekAhead;
+              })
+            : data;
+          if (filtered.length === 0) {
+            return <UpcomingEmptyState context="global" hasStarted={true} />;
+          }
+          return (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {filtered.map((match) => <MatchCard key={match.id} match={match} />)}
+            </div>
+          );
+        })()
       )}
     </div>
   );
