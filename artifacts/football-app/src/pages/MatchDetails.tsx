@@ -517,6 +517,48 @@ function H2HTab({ data }: { data: MatchDetailsData }) {
 
 // ─── Standings tab ────────────────────────────────────────────────────────────
 
+function StandingsTable({ rows, highlighted }: { rows: LiveStanding[]; highlighted: Set<number> }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-xs">
+        <thead className="border-b border-border bg-secondary/40">
+          <tr>
+            {["#", "Team", "P", "W", "D", "L", "GD", "Pts"].map((h, i) => (
+              <th key={h} className={`px-2 py-2.5 font-semibold text-muted-foreground ${i === 1 ? "text-left" : "text-center"} ${i >= 6 ? "hidden sm:table-cell" : ""} ${i === 7 ? "!table-cell" : ""}`}>
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border">
+          {rows.map((row) => (
+            <tr
+              key={row.team.id}
+              className={`transition-colors ${highlighted.has(row.team.id) ? "bg-primary/10 font-semibold" : "hover:bg-secondary/30"}`}
+            >
+              <td className="px-2 py-2 text-center text-muted-foreground w-8">{row.position}</td>
+              <td className="px-2 py-2">
+                <div className="flex items-center gap-1.5">
+                  <img src={row.team.crest} alt="" className="w-4 h-4 object-contain flex-shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
+                  <span className="truncate max-w-[80px] sm:max-w-none">{row.team.shortName}</span>
+                </div>
+              </td>
+              <td className="px-2 py-2 text-center">{row.played}</td>
+              <td className="px-2 py-2 text-center">{row.won}</td>
+              <td className="px-2 py-2 text-center">{row.drawn}</td>
+              <td className="px-2 py-2 text-center">{row.lost}</td>
+              <td className="px-2 py-2 text-center hidden sm:table-cell">
+                {row.goalDifference > 0 ? "+" : ""}{row.goalDifference}
+              </td>
+              <td className="px-2 py-2 text-center font-bold">{row.points}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function StandingsTab({ data }: { data: MatchDetailsData }) {
   const { standings, match } = data;
 
@@ -531,46 +573,49 @@ function StandingsTab({ data }: { data: MatchDetailsData }) {
   }
 
   const highlighted = new Set([match.homeTeam.id, match.awayTeam.id]);
+  const isMultiGroup = standings.some(r => r.group != null);
+
+  if (isMultiGroup) {
+    // Find which groups the two teams belong to
+    const homeGroup = standings.find(r => r.team.id === match.homeTeam.id)?.group;
+    const awayGroup = standings.find(r => r.team.id === match.awayTeam.id)?.group;
+    const relevantGroups = new Set([homeGroup, awayGroup].filter(Boolean));
+
+    // Group rows by their group label, only keeping relevant groups
+    const groupMap = new Map<string, typeof standings>();
+    for (const row of standings) {
+      const g = row.group ?? "";
+      if (!relevantGroups.has(g)) continue;
+      if (!groupMap.has(g)) groupMap.set(g, []);
+      groupMap.get(g)!.push(row);
+    }
+
+    if (groupMap.size === 0) {
+      // Fallback: show flat table if we can't determine groups
+      return (
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <StandingsTable rows={standings} highlighted={highlighted} />
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        {Array.from(groupMap.entries()).map(([groupName, rows]) => (
+          <div key={groupName} className="bg-card border border-border rounded-xl overflow-hidden">
+            <div className="px-4 py-2.5 border-b border-border bg-secondary/30">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">{groupName}</h3>
+            </div>
+            <StandingsTable rows={rows} highlighted={highlighted} />
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="bg-card border border-border rounded-xl overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full text-xs">
-          <thead className="border-b border-border bg-secondary/40">
-            <tr>
-              {["#", "Team", "P", "W", "D", "L", "GD", "Pts"].map((h, i) => (
-                <th key={h} className={`px-2 py-2.5 font-semibold text-muted-foreground ${i === 1 ? "text-left" : "text-center"} ${i >= 6 ? "hidden sm:table-cell" : ""} ${i === 7 ? "!table-cell" : ""}`}>
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {standings.map((row) => (
-              <tr
-                key={row.team.id}
-                className={`transition-colors ${highlighted.has(row.team.id) ? "bg-primary/10 font-semibold" : "hover:bg-secondary/30"}`}
-              >
-                <td className="px-2 py-2 text-center text-muted-foreground w-8">{row.position}</td>
-                <td className="px-2 py-2">
-                  <div className="flex items-center gap-1.5">
-                    <img src={row.team.crest} alt="" className="w-4 h-4 object-contain flex-shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
-                    <span className="truncate max-w-[80px] sm:max-w-none">{row.team.shortName}</span>
-                  </div>
-                </td>
-                <td className="px-2 py-2 text-center">{row.played}</td>
-                <td className="px-2 py-2 text-center">{row.won}</td>
-                <td className="px-2 py-2 text-center">{row.drawn}</td>
-                <td className="px-2 py-2 text-center">{row.lost}</td>
-                <td className="px-2 py-2 text-center hidden sm:table-cell">
-                  {row.goalDifference > 0 ? "+" : ""}{row.goalDifference}
-                </td>
-                <td className="px-2 py-2 text-center font-bold">{row.points}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <StandingsTable rows={standings} highlighted={highlighted} />
     </div>
   );
 }
