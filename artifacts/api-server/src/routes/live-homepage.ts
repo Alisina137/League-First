@@ -1,18 +1,20 @@
 import { Router, type IRouter } from "express";
-import { getAllLiveMatches, getAllUpcomingMatches, getStandings, COMPETITIONS } from "../services/footballDataService";
+import { getAllLiveMatches, getAllUpcomingMatches, getAllFinishedMatches, getStandings, COMPETITIONS } from "../services/footballDataService";
 
 const router: IRouter = Router();
 
 router.get("/live/homepage", async (_req, res): Promise<void> => {
   try {
-    const [liveResult, upcomingResult, plStandingsResult] = await Promise.allSettled([
+    const [liveResult, upcomingResult, finishedResult, plStandingsResult] = await Promise.allSettled([
       getAllLiveMatches(),
       getAllUpcomingMatches(),
+      getAllFinishedMatches(),
       getStandings("premier-league"),
     ]);
 
     const liveMatches   = liveResult.status    === "fulfilled" ? liveResult.value    : [];
     const allUpcoming   = upcomingResult.status === "fulfilled" ? upcomingResult.value : [];
+    const allFinished   = finishedResult.status === "fulfilled" ? finishedResult.value : [];
     const plStandings   = plStandingsResult.status === "fulfilled" ? plStandingsResult.value : [];
 
     // Sort by date, earliest first
@@ -22,6 +24,9 @@ router.get("/live/homepage", async (_req, res): Promise<void> => {
 
     const upcomingMatches = sortedUpcoming.slice(0, 20);
     const nextFixtureDate: string | null = sortedUpcoming[0]?.matchDate ?? null;
+
+    // Finished matches: already sorted newest-first from the provider
+    const finishedMatches = allFinished.slice(0, 20);
 
     // hasStarted: true if there are any live or finished matches anywhere,
     // or if competitions are known (major leagues are always "in progress" across the calendar year)
@@ -33,6 +38,7 @@ router.get("/live/homepage", async (_req, res): Promise<void> => {
     res.json({
       liveMatches,
       upcomingMatches,
+      finishedMatches,
       featuredStandings: plStandings.slice(0, 6),
       competitions: Object.entries(COMPETITIONS).map(([slug, c]) => ({
         slug,

@@ -15,6 +15,7 @@ export {
 export {
   getAllLiveMatches,
   getAllUpcomingMatches,
+  getAllFinishedMatches,
   getMatchLineup as fdGetMatchLineup,
   getH2H as fdGetH2H,
   type LineupPlayer,

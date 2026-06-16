@@ -253,6 +253,45 @@ export async function getAllUpcomingMatches(): Promise<LiveMatch[]> {
   });
 }
 
+export async function getAllFinishedMatches(): Promise<LiveMatch[]> {
+  const today = new Date().toISOString().slice(0, 10);
+  const dateFrom = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const cacheKey = `fd:finished:${today}`;
+  return cached(cacheKey, TTL.MATCHES, async () => {
+    const data = await fdFetch(`/matches?dateFrom=${dateFrom}&dateTo=${today}&status=FINISHED`) as {
+      matches: Array<{
+        id: number;
+        competition: { id: number; code: string; name: string; emblem: string | null };
+        utcDate: string; status: string; matchday: number | null;
+        homeTeam: { id: number; name: string; shortName: string; tla: string; crest: string };
+        awayTeam: { id: number; name: string; shortName: string; tla: string; crest: string };
+        score: { fullTime: { home: number | null; away: number | null } };
+        venue?: string | null;
+      }>;
+    };
+    const knownCodes = new Set(Object.values(FD_COMPETITIONS).map(c => c.code));
+    return (data.matches ?? [])
+      .filter(m => knownCodes.has(m.competition.code) && m.status === "FINISHED")
+      .sort((a, b) => new Date(b.utcDate).getTime() - new Date(a.utcDate).getTime())
+      .slice(0, 50)
+      .map(m => {
+        const slug = slugFromCode(m.competition.code);
+        return {
+          id: m.id,
+          homeTeam: { id: m.homeTeam.id, name: m.homeTeam.name, shortName: m.homeTeam.shortName ?? m.homeTeam.tla, crest: m.homeTeam.crest },
+          awayTeam: { id: m.awayTeam.id, name: m.awayTeam.name, shortName: m.awayTeam.shortName ?? m.awayTeam.tla, crest: m.awayTeam.crest },
+          homeScore: m.score.fullTime.home, awayScore: m.score.fullTime.away,
+          status: "finished" as const, minute: null,
+          period: null,
+          matchDate: m.utcDate, matchday: m.matchday,
+          venue: m.venue ?? null,
+          leagueCode: m.competition.code, leagueName: m.competition.name,
+          leagueSlug: slug, leagueEmblem: FD_COMPETITIONS[slug]?.emblem ?? "",
+        };
+      });
+  });
+}
+
 export async function getScorers(slug: string): Promise<LiveScorer[]> {
   const comp = FD_COMPETITIONS[slug];
   if (!comp) throw new Error(`No football-data.org config for ${slug}`);

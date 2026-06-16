@@ -8,6 +8,7 @@ import { UpcomingEmptyState } from "../components/UpcomingEmptyState";
 interface LiveHomepage {
   liveMatches: LiveMatch[];
   upcomingMatches: LiveMatch[];
+  finishedMatches: LiveMatch[];
   featuredStandings: LiveStanding[];
   competitions: Competition[];
   nextFixtureDate: string | null;
@@ -124,6 +125,56 @@ function UpcomingFixtureCard({ match }: { match: LiveMatch }) {
   );
 }
 
+function FinishedMatchCard({ match }: { match: LiveMatch }) {
+  const date = new Date(match.matchDate);
+  const dateStr = date.toLocaleDateString([], { month: "short", day: "numeric" });
+  const timeStr = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+  const home = match.homeScore ?? 0;
+  const away = match.awayScore ?? 0;
+  const homeWon = home > away;
+  const awayWon = away > home;
+
+  return (
+    <Link href={matchLink(match)}>
+      <div className="group bg-card border border-border rounded-xl overflow-hidden hover:border-primary/50 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer">
+        {/* Header bar: competition + date */}
+        <div className="flex items-center justify-between px-4 py-2.5 bg-secondary/30 border-b border-border">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <img src={match.leagueEmblem} alt="" className="w-4 h-4 object-contain flex-shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+            <span className="text-xs font-semibold text-muted-foreground truncate">{match.leagueName}</span>
+          </div>
+          <span className="text-xs font-medium text-muted-foreground flex-shrink-0 ml-2">
+            {dateStr} · {timeStr}
+          </span>
+        </div>
+
+        {/* Teams + Score */}
+        <div className="px-4 py-4 flex items-center gap-2">
+          <div className="flex flex-col items-center gap-2 flex-1 min-w-0">
+            <img src={match.homeTeam.crest} alt={match.homeTeam.name} className={`w-10 h-10 object-contain drop-shadow-sm ${awayWon ? "opacity-40" : ""}`} onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
+            <span className={`font-bold text-xs text-center line-clamp-2 leading-snug ${awayWon ? "text-muted-foreground" : ""}`}>{match.homeTeam.shortName ?? match.homeTeam.name}</span>
+          </div>
+
+          <div className="flex flex-col items-center flex-shrink-0 px-2 gap-1">
+            <span className="text-xl font-black tabular-nums">
+              <span className={homeWon ? "text-foreground" : "text-muted-foreground"}>{home}</span>
+              <span className="text-muted-foreground mx-1">–</span>
+              <span className={awayWon ? "text-foreground" : "text-muted-foreground"}>{away}</span>
+            </span>
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">FT</span>
+          </div>
+
+          <div className="flex flex-col items-center gap-2 flex-1 min-w-0">
+            <img src={match.awayTeam.crest} alt={match.awayTeam.name} className={`w-10 h-10 object-contain drop-shadow-sm ${homeWon ? "opacity-40" : ""}`} onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
+            <span className={`font-bold text-xs text-center line-clamp-2 leading-snug ${homeWon ? "text-muted-foreground" : ""}`}>{match.awayTeam.shortName ?? match.awayTeam.name}</span>
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
 function StandingsMini({ standings }: { standings: LiveStanding[] }) {
   return (
     <div className="bg-card border border-border rounded-xl overflow-hidden">
@@ -187,11 +238,16 @@ export default function Home() {
     return <ErrorState message="Could not load homepage data" onRetry={() => refetch()} />;
   }
 
-  const { liveMatches = [], upcomingMatches = [], featuredStandings = [], nextFixtureDate = null, hasStarted = true } = data ?? {};
+  const { liveMatches = [], upcomingMatches = [], finishedMatches = [], featuredStandings = [], nextFixtureDate = null, hasStarted = true } = data ?? {};
 
   const upcomingToShow = upcomingMatches
     .slice()
     .sort((a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime())
+    .slice(0, 4);
+
+  const finishedToShow = finishedMatches
+    .slice()
+    .sort((a, b) => new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime())
     .slice(0, 4);
 
   return (
@@ -265,6 +321,32 @@ export default function Home() {
               ))}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Finished Matches */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-5">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold">Finished Matches</h2>
+            <Link
+              href="/matches?status=finished"
+              className="text-sm text-primary hover:underline font-medium"
+            >
+              View All
+            </Link>
+          </div>
+
+          {finishedToShow.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {finishedToShow.map((m) => <FinishedMatchCard key={m.id} match={m} />)}
+            </div>
+          ) : (
+            <div className="text-muted-foreground p-8 bg-card rounded-xl border border-border text-center">
+              <p className="text-base font-medium">No finished matches in the last 7 days</p>
+              <p className="text-sm mt-1">Results will appear here after matches are played</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
