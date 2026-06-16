@@ -15,4 +15,13 @@ export {
 export {
   getAllLiveMatches,
   getAllUpcomingMatches,
+  getMatchLineup as fdGetMatchLineup,
+  getH2H as fdGetH2H,
+  type LineupPlayer,
+  type TeamLineup,
 } from "./providers/footballDataProvider";
+
+export {
+  getMatchLineup as afGetMatchLineup,
+  getH2H as afGetH2H,
+} from "./providers/apiFootballProvider";

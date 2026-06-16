@@ -287,6 +287,76 @@ export async function getTeams(slug: string): Promise<LiveTeam[]> {
   });
 }
 
+export interface LineupPlayer {
+  id: number;
+  name: string;
+  position: string | null;
+  shirtNumber: number | null;
+}
+
+export interface TeamLineup {
+  id: number;
+  name: string;
+  formation: string | null;
+  startingXI: LineupPlayer[];
+  bench: LineupPlayer[];
+}
+
+export async function getMatchLineup(matchId: number): Promise<{ homeTeam: TeamLineup; awayTeam: TeamLineup } | null> {
+  return cached(`fd:lineup:${matchId}`, 5 * 60_000, async () => {
+    const data = await fdFetch(`/matches/${matchId}`) as {
+      homeTeam: {
+        id: number; name: string; formation: string | null;
+        lineup: Array<{ id: number; name: string; position: string | null; shirtNumber: number | null }>;
+        bench:  Array<{ id: number; name: string; position: string | null; shirtNumber: number | null }>;
+      };
+      awayTeam: {
+        id: number; name: string; formation: string | null;
+        lineup: Array<{ id: number; name: string; position: string | null; shirtNumber: number | null }>;
+        bench:  Array<{ id: number; name: string; position: string | null; shirtNumber: number | null }>;
+      };
+    };
+    const map = (p: { id: number; name: string; position: string | null; shirtNumber: number | null }): LineupPlayer =>
+      ({ id: p.id, name: p.name, position: p.position ?? null, shirtNumber: p.shirtNumber ?? null });
+    const homeXI   = (data.homeTeam.lineup ?? []).map(map);
+    const awayXI   = (data.awayTeam.lineup ?? []).map(map);
+    if (homeXI.length === 0 && awayXI.length === 0) return null;
+    return {
+      homeTeam: { id: data.homeTeam.id, name: data.homeTeam.name, formation: data.homeTeam.formation ?? null, startingXI: homeXI, bench: (data.homeTeam.bench ?? []).map(map) },
+      awayTeam: { id: data.awayTeam.id, name: data.awayTeam.name, formation: data.awayTeam.formation ?? null, startingXI: awayXI, bench: (data.awayTeam.bench ?? []).map(map) },
+    };
+  });
+}
+
+export async function getH2H(matchId: number): Promise<LiveMatch[]> {
+  return cached(`fd:h2h:${matchId}`, 60 * 60_000, async () => {
+    const data = await fdFetch(`/matches/${matchId}/head2head?limit=10`) as {
+      matches: Array<{
+        id: number; utcDate: string; status: string; matchday: number | null;
+        homeTeam: { id: number; name: string; shortName: string; tla: string; crest: string };
+        awayTeam: { id: number; name: string; shortName: string; tla: string; crest: string };
+        score: { fullTime: { home: number | null; away: number | null } };
+        competition: { code: string; name: string; emblem: string | null };
+      }>;
+    };
+    return (data.matches ?? [])
+      .filter(m => normalizeStatus(m.status) === "finished")
+      .map(m => {
+        const slug = slugFromCode(m.competition.code);
+        return {
+          id: m.id,
+          homeTeam: { id: m.homeTeam.id, name: m.homeTeam.name, shortName: m.homeTeam.shortName ?? m.homeTeam.tla, crest: m.homeTeam.crest },
+          awayTeam: { id: m.awayTeam.id, name: m.awayTeam.name, shortName: m.awayTeam.shortName ?? m.awayTeam.tla, crest: m.awayTeam.crest },
+          homeScore: m.score.fullTime.home, awayScore: m.score.fullTime.away,
+          status: "finished" as const, minute: null, period: null,
+          matchDate: m.utcDate, matchday: m.matchday, venue: null,
+          leagueCode: m.competition.code, leagueName: m.competition.name,
+          leagueSlug: slug, leagueEmblem: m.competition.emblem ?? "",
+        };
+      });
+  });
+}
+
 export function invalidateCache(pattern?: string): void {
   if (!pattern) { cache.clear(); logger.info("FD cache cleared"); return; }
   for (const key of cache.keys()) {

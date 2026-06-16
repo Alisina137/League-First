@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useSearch, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Share2, MapPin, ArrowLeft } from "lucide-react";
-import { apiFetch, type MatchDetailsData, type LiveMatch, type LiveStanding } from "../lib/liveApi";
+import { apiFetch, type MatchDetailsData, type LiveMatch, type LiveStanding, type TeamLineup } from "../lib/liveApi";
 import { Skeleton, ErrorState } from "../components/Skeleton";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -575,6 +575,71 @@ function StandingsTab({ data }: { data: MatchDetailsData }) {
   );
 }
 
+// ─── Lineups tab ──────────────────────────────────────────────────────────────
+
+function LineupSide({ side, team }: { side: "home" | "away"; team: TeamLineup }) {
+  return (
+    <div className={`flex-1 space-y-3 ${side === "away" ? "text-right" : ""}`}>
+      <div className={`flex items-center gap-2 ${side === "away" ? "flex-row-reverse" : ""}`}>
+        <span className="text-xs font-bold truncate">{team.name}</span>
+        {team.formation && (
+          <span className="text-[10px] bg-primary/10 text-primary font-bold px-1.5 py-0.5 rounded flex-shrink-0">{team.formation}</span>
+        )}
+      </div>
+      <div className="space-y-1">
+        {team.startingXI.map((p, i) => (
+          <div key={p.id} className={`flex items-center gap-2 text-xs ${side === "away" ? "flex-row-reverse" : ""}`}>
+            <span className="w-5 h-5 rounded-sm bg-secondary flex items-center justify-center text-[10px] font-black text-muted-foreground flex-shrink-0">
+              {p.shirtNumber ?? i + 1}
+            </span>
+            <span className="truncate font-medium">{p.name}</span>
+            {p.position && (
+              <span className="text-[9px] text-muted-foreground flex-shrink-0">{p.position}</span>
+            )}
+          </div>
+        ))}
+      </div>
+      {team.bench.length > 0 && (
+        <>
+          <p className={`text-[10px] font-bold uppercase tracking-wider text-muted-foreground pt-1 border-t border-border ${side === "away" ? "text-right" : ""}`}>Bench</p>
+          <div className="space-y-1">
+            {team.bench.map((p, i) => (
+              <div key={p.id} className={`flex items-center gap-2 text-xs text-muted-foreground ${side === "away" ? "flex-row-reverse" : ""}`}>
+                <span className="w-5 h-5 rounded-sm bg-secondary/50 flex items-center justify-center text-[10px] font-bold flex-shrink-0">
+                  {p.shirtNumber ?? i + 12}
+                </span>
+                <span className="truncate">{p.name}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function LineupsTab({ data }: { data: MatchDetailsData }) {
+  if (!data.lineups) {
+    return (
+      <div className="bg-card border border-border rounded-xl p-12 text-center space-y-3">
+        <p className="text-4xl">📋</p>
+        <p className="font-bold text-base">Lineups Not Yet Available</p>
+        <p className="text-sm text-muted-foreground max-w-xs mx-auto">Lineups are typically announced 1 hour before kickoff.</p>
+      </div>
+    );
+  }
+  return (
+    <div className="bg-card border border-border rounded-xl p-4">
+      <h3 className="font-bold text-sm mb-4 text-center">Starting Lineups</h3>
+      <div className="flex gap-4">
+        <LineupSide side="home" team={data.lineups.homeTeam} />
+        <div className="w-px bg-border flex-shrink-0" />
+        <LineupSide side="away" team={data.lineups.awayTeam} />
+      </div>
+    </div>
+  );
+}
+
 // ─── Unavailable tabs ─────────────────────────────────────────────────────────
 
 function UnavailableTab({ icon, label, detail }: { icon: string; label: string; detail: string }) {
@@ -631,15 +696,14 @@ function MatchDetailsSkeleton() {
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
 
-type Tab = "overview" | "lineups" | "stats" | "h2h" | "standings" | "news";
+type Tab = "overview" | "lineups" | "stats" | "h2h" | "standings";
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: "overview", label: "Overview" },
-  { id: "lineups", label: "Lineups" },
-  { id: "stats", label: "Stats" },
-  { id: "h2h", label: "H2H" },
-  { id: "standings", label: "Table" },
-  { id: "news", label: "News" },
+  { id: "overview",  label: "Overview" },
+  { id: "lineups",   label: "Lineups"  },
+  { id: "stats",     label: "Stats"    },
+  { id: "h2h",       label: "H2H"      },
+  { id: "standings", label: "Table"    },
 ];
 
 // ─── Share button ─────────────────────────────────────────────────────────────
@@ -743,11 +807,10 @@ export default function MatchDetails() {
 
       {/* Tab panels */}
       {tab === "overview"   && <OverviewTab data={data} />}
-      {tab === "lineups"    && <UnavailableTab icon="📋" label="Lineups Not Yet Available" detail="Lineups are typically announced 1 hour before kickoff." />}
-      {tab === "stats"      && <UnavailableTab icon="📊" label="Match Stats Not Available" detail="Live match statistics will appear here once the match is underway." />}
+      {tab === "lineups"    && <LineupsTab data={data} />}
+      {tab === "stats"      && <UnavailableTab icon="📊" label="Match Stats Not Available" detail="Live match statistics are not available on the free API tier." />}
       {tab === "h2h"        && <H2HTab data={data} />}
       {tab === "standings"  && <StandingsTab data={data} />}
-      {tab === "news"       && <UnavailableTab icon="📰" label="No News Available" detail="Match-related news articles will appear here when available." />}
     </div>
   );
 }

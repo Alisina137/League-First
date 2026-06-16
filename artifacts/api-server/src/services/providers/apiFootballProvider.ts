@@ -1,4 +1,4 @@
-import type { LiveStanding, LiveMatch, LiveScorer, LiveTeam } from "./footballDataProvider";
+import type { LiveStanding, LiveMatch, LiveScorer, LiveTeam, LineupPlayer, TeamLineup } from "./footballDataProvider";
 
 const AF_BASE = "https://v3.football.api-sports.io";
 
@@ -281,6 +281,57 @@ export async function getTeams(slug: string): Promise<LiveTeam[]> {
       leagueName:  comp.name,
       squadSize:   0,
     }));
+  });
+}
+
+export async function getMatchLineup(fixtureId: number): Promise<{ homeTeam: TeamLineup; awayTeam: TeamLineup } | null> {
+  return cached(`af:lineup:${fixtureId}`, 5 * 60_000, async () => {
+    const raw = await afFetch(`/fixtures/lineups?fixture=${fixtureId}`) as {
+      response: Array<{
+        team: { id: number; name: string; logo: string };
+        formation: string | null;
+        startXI: Array<{ player: { id: number; name: string; pos: string | null; number: number | null } }>;
+        substitutes: Array<{ player: { id: number; name: string; pos: string | null; number: number | null } }>;
+      }>;
+    };
+    if (!raw.response || raw.response.length < 2) return null;
+    const [home, away] = raw.response;
+    const map = (e: { player: { id: number; name: string; pos: string | null; number: number | null } }): LineupPlayer =>
+      ({ id: e.player.id, name: e.player.name, position: e.player.pos ?? null, shirtNumber: e.player.number ?? null });
+    if ((home.startXI ?? []).length === 0 && (away.startXI ?? []).length === 0) return null;
+    return {
+      homeTeam: { id: home.team.id, name: home.team.name, formation: home.formation ?? null, startingXI: (home.startXI ?? []).map(map), bench: (home.substitutes ?? []).map(map) },
+      awayTeam: { id: away.team.id, name: away.team.name, formation: away.formation ?? null, startingXI: (away.startXI ?? []).map(map), bench: (away.substitutes ?? []).map(map) },
+    };
+  });
+}
+
+export async function getH2H(homeId: number, awayId: number): Promise<LiveMatch[]> {
+  const key = `af:h2h:${Math.min(homeId, awayId)}-${Math.max(homeId, awayId)}`;
+  return cached(key, 60 * 60_000, async () => {
+    const raw = await afFetch(`/fixtures/headtohead?h2h=${homeId}-${awayId}&last=10`) as {
+      response: Array<{
+        fixture: { id: number; date: string; status: { short: string } };
+        league: { id: number; name: string; logo: string };
+        teams: {
+          home: { id: number; name: string; code?: string | null; logo: string };
+          away: { id: number; name: string; code?: string | null; logo: string };
+        };
+        goals: { home: number | null; away: number | null };
+      }>;
+    };
+    return (raw.response ?? [])
+      .filter(f => normalizeStatus(f.fixture.status.short) === "finished")
+      .map(f => ({
+        id: f.fixture.id,
+        homeTeam: { id: f.teams.home.id, name: f.teams.home.name, shortName: teamShortName(f.teams.home.name, f.teams.home.code), crest: f.teams.home.logo },
+        awayTeam: { id: f.teams.away.id, name: f.teams.away.name, shortName: teamShortName(f.teams.away.name, f.teams.away.code), crest: f.teams.away.logo },
+        homeScore: f.goals.home, awayScore: f.goals.away,
+        status: "finished" as const, minute: null, period: null,
+        matchDate: f.fixture.date, matchday: null, venue: null,
+        leagueCode: String(f.league.id), leagueName: f.league.name,
+        leagueSlug: "", leagueEmblem: f.league.logo,
+      }));
   });
 }
 

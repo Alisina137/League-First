@@ -43,6 +43,21 @@ export interface LiveMatch {
   leagueEmblem: string;
 }
 
+export interface LineupPlayer {
+  id: number;
+  name: string;
+  position: string | null;
+  shirtNumber: number | null;
+}
+
+export interface TeamLineup {
+  id: number;
+  name: string;
+  formation: string | null;
+  startingXI: LineupPlayer[];
+  bench: LineupPlayer[];
+}
+
 export interface TieLeg {
   matchId: number;
   date: string;
@@ -124,6 +139,7 @@ export interface MatchDetailsData {
   };
   standings: LiveStanding[];
   h2h: LiveMatch[];
+  lineups: { homeTeam: TeamLineup; awayTeam: TeamLineup } | null;
   homeStanding: LiveStanding | null;
   awayStanding: LiveStanding | null;
   topScorers: LiveScorer[];

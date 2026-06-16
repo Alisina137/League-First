@@ -1,6 +1,8 @@
 import { Router, type IRouter } from "express";
-import { getMatches, getStandings, getScorers, COMPETITIONS } from "../services/footballDataService";
+import { getMatches, getStandings, getScorers, COMPETITIONS, fdGetMatchLineup, fdGetH2H, afGetMatchLineup, afGetH2H } from "../services/footballDataService";
 import type { LiveMatch } from "../services/footballDataService";
+
+const AF_PRIMARY_SLUGS = new Set(["europa-league", "saudi-pro-league", "mls"]);
 
 const router: IRouter = Router();
 
@@ -18,7 +20,8 @@ router.get("/live/match/:matchId", async (req, res): Promise<void> => {
   }
 
   try {
-    // All data comes from cached provider calls — no extra HTTP requests
+    const isAfPrimary = AF_PRIMARY_SLUGS.has(leagueSlug);
+
     const [matchesResult, standingsResult, scorersResult] = await Promise.allSettled([
       getMatches(leagueSlug),
       getStandings(leagueSlug),
@@ -41,25 +44,18 @@ router.get("/live/match/:matchId", async (req, res): Promise<void> => {
     const homeId = foundMatch.homeTeam.id;
     const awayId = foundMatch.awayTeam.id;
 
-    // H2H: finished matches between these two teams in this competition
-    const h2h = allMatches
-      .filter(
-        (m) =>
-          m.id !== matchId &&
-          m.status === "finished" &&
-          ((m.homeTeam.id === homeId && m.awayTeam.id === awayId) ||
-            (m.homeTeam.id === awayId && m.awayTeam.id === homeId))
-      )
-      .sort(
-        (a, b) =>
-          new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime()
-      )
-      .slice(0, 5);
+    // Fetch H2H and lineups in parallel using dedicated API endpoints
+    const [h2hResult, lineupResult] = await Promise.allSettled([
+      isAfPrimary ? afGetH2H(homeId, awayId) : fdGetH2H(matchId),
+      isAfPrimary ? afGetMatchLineup(matchId) : fdGetMatchLineup(matchId),
+    ]);
+
+    const h2h = h2hResult.status === "fulfilled" ? h2hResult.value : [];
+    const lineups = lineupResult.status === "fulfilled" ? lineupResult.value : null;
 
     const homeStanding = standings.find((s) => s.team.id === homeId) ?? null;
     const awayStanding = standings.find((s) => s.team.id === awayId) ?? null;
 
-    // Top scorers filtered to the two teams in this match, sorted by goals desc
     const topScorers = allScorers
       .filter((s) => s.team.id === homeId || s.team.id === awayId)
       .sort((a, b) => b.goals - a.goals)
@@ -85,6 +81,7 @@ router.get("/live/match/:matchId", async (req, res): Promise<void> => {
       },
       standings,
       h2h,
+      lineups,
       homeStanding,
       awayStanding,
       topScorers,
