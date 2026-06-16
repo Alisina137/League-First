@@ -87,6 +87,15 @@ function normalizeStatus(short: string): "live" | "upcoming" | "finished" {
   return "upcoming";
 }
 
+function afPeriod(short: string): string | null {
+  const MAP: Record<string, string> = {
+    "1H": "1H", "HT": "HT", "2H": "2H",
+    "ET": "ET", "BT": "HT", "P": "PEN",
+    "LIVE": "LIVE", "INT": "INT",
+  };
+  return MAP[short] ?? null;
+}
+
 function normalizeRound(round: string): string {
   const r = round.toLowerCase();
   if (r.startsWith("group stage") || r.startsWith("regular season") || r.startsWith("league phase")) return "GROUP_STAGE";
@@ -183,6 +192,7 @@ export async function getMatches(slug: string, status?: string): Promise<LiveMat
         awayScore: normStatus !== "upcoming" ? f.goals.away : null,
         status:    normStatus,
         minute:    normStatus === "live" ? (f.fixture.status.elapsed ?? null) : null,
+        period:    normStatus === "live" ? afPeriod(f.fixture.status.short) : null,
         matchDate: f.fixture.date,
         matchday,
         stage,

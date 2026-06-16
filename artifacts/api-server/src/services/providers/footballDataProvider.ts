@@ -69,7 +69,7 @@ export interface LiveMatch {
   homeTeam: { id: number; name: string; shortName: string; crest: string };
   awayTeam: { id: number; name: string; shortName: string; crest: string };
   homeScore: number | null; awayScore: number | null;
-  status: string; minute: number | null;
+  status: string; minute: number | null; period?: string | null;
   matchDate: string; matchday: number | null;
   stage?: string; venue: string | null;
   leagueCode: string; leagueName: string; leagueSlug: string; leagueEmblem: string;
@@ -98,6 +98,15 @@ function normalizeStatus(s: string): "live" | "upcoming" | "finished" {
   return "finished";
 }
 
+function livePeriod(rawStatus: string, minute: number | null): string | null {
+  if (rawStatus === "HALFTIME" || rawStatus === "PAUSED") return "HT";
+  if (rawStatus === "IN_PLAY" || rawStatus === "LIVE") {
+    if (minute !== null) return minute <= 45 ? "1H" : "2H";
+    return "LIVE";
+  }
+  return null;
+}
+
 export async function getStandings(slug: string): Promise<LiveStanding[]> {
   const comp = FD_COMPETITIONS[slug];
   if (!comp) throw new Error(`No football-data.org config for ${slug}`);
@@ -122,7 +131,7 @@ export async function getStandings(slug: string): Promise<LiveStanding[]> {
         position: r.position, team: r.team,
         played: r.playedGames, won: r.won, drawn: r.draw, lost: r.lost,
         goalsFor: r.goalsFor, goalsAgainst: r.goalsAgainst,
-        goalDifference: r.goalDifference, points: r.points, form: r.form,
+        goalDifference: r.goalDifference, points: r.points, form: r.form?.replace(/,/g, "") ?? null,
       }));
     }
     const allRows: LiveStanding[] = [];
@@ -135,7 +144,7 @@ export async function getStandings(slug: string): Promise<LiveStanding[]> {
           position: r.position, group: groupLabel, team: r.team,
           played: r.playedGames, won: r.won, drawn: r.draw, lost: r.lost,
           goalsFor: r.goalsFor, goalsAgainst: r.goalsAgainst,
-          goalDifference: r.goalDifference, points: r.points, form: r.form,
+          goalDifference: r.goalDifference, points: r.points, form: r.form?.replace(/,/g, "") ?? null,
         });
       }
     }
@@ -167,6 +176,7 @@ export async function getMatches(slug: string, status?: string): Promise<LiveMat
       homeScore: m.score.fullTime.home, awayScore: m.score.fullTime.away,
       status: normalizeStatus(m.status),
       minute: normalizeStatus(m.status) === "live" && m.minute != null ? m.minute : null,
+      period: normalizeStatus(m.status) === "live" ? livePeriod(m.status, m.minute ?? null) : null,
       matchDate: m.utcDate, matchday: m.matchday, stage: m.stage,
       venue: m.venue ?? null,
       leagueCode: comp.code, leagueName: comp.name, leagueSlug: slug, leagueEmblem: comp.emblem,
@@ -195,6 +205,7 @@ export async function getAllLiveMatches(): Promise<LiveMatch[]> {
         awayTeam: { id: m.awayTeam.id, name: m.awayTeam.name, shortName: m.awayTeam.shortName ?? m.awayTeam.tla, crest: m.awayTeam.crest },
         homeScore: m.score.fullTime.home, awayScore: m.score.fullTime.away,
         status: "live" as const, minute: m.minute ?? null,
+        period: livePeriod(m.status, m.minute ?? null),
         matchDate: m.utcDate, matchday: m.matchday,
         venue: m.venue ?? null,
         leagueCode: m.competition.code, leagueName: m.competition.name,

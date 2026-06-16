@@ -169,7 +169,11 @@ function MatchHeader({ data }: { data: MatchDetailsData }) {
                 <span className="text-3xl md:text-4xl font-black text-foreground">–</span>
                 <span className="flex items-center gap-1 text-xs font-bold text-primary">
                   <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                  {match.minute ? `${match.minute}'` : "LIVE"}
+                  {match.period && match.period !== "LIVE" && match.period !== "1H" && match.period !== "2H"
+                    ? match.period
+                    : match.minute
+                      ? `${match.minute}'`
+                      : match.period ?? "LIVE"}
                 </span>
               </>
             ) : (
@@ -263,8 +267,8 @@ function PlaceholderBadge() {
 }
 
 function RecentFormCard({ data }: { data: MatchDetailsData }) {
-  const homeForm = (data.homeStanding?.form ?? "").split("").filter(Boolean).slice(-5);
-  const awayForm = (data.awayStanding?.form ?? "").split("").filter(Boolean).slice(-5);
+  const homeForm = (data.homeStanding?.form ?? "").split("").filter(c => "WDL".includes(c)).slice(-5);
+  const awayForm = (data.awayStanding?.form ?? "").split("").filter(c => "WDL".includes(c)).slice(-5);
   const noData = homeForm.length === 0 && awayForm.length === 0;
 
   return (

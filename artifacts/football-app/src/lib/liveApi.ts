@@ -32,6 +32,7 @@ export interface LiveMatch {
   awayScore: number | null;
   status: "live" | "upcoming" | "finished";
   minute: number | null;
+  period?: string | null;
   matchDate: string;
   matchday: number | null;
   stage?: string;

@@ -72,9 +72,9 @@ function StandingsTable({ rows, showForm = true }: { rows: LiveStanding[]; showF
                   <td className="text-center px-3 py-3 hidden xl:table-cell">
                     {row.form ? (
                       <div className="flex items-center justify-center gap-0.5">
-                        {row.form.split(",").filter(Boolean).slice(-5).map((r, i) => (
-                          <span key={i} className={`w-4 h-4 rounded-sm text-[10px] font-bold text-white flex items-center justify-center ${formColors[r.trim()] ?? "bg-muted"}`}>
-                            {r.trim().charAt(0)}
+                        {row.form.split("").filter(c => "WDL".includes(c)).slice(-5).map((r, i) => (
+                          <span key={i} className={`w-4 h-4 rounded-sm text-[10px] font-bold text-white flex items-center justify-center ${formColors[r] ?? "bg-muted"}`}>
+                            {r}
                           </span>
                         ))}
                       </div>

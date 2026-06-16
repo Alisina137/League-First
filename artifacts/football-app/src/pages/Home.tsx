@@ -51,7 +51,9 @@ function LiveMatchCard({ match }: { match: LiveMatch }) {
           </div>
           <span className="flex items-center gap-1 text-xs font-bold text-primary">
             <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-            {match.minute ? `${match.minute}'` : "LIVE"}
+            {match.minute
+              ? `${match.period && match.period !== "1H" && match.period !== "2H" && match.period !== "LIVE" ? `${match.period} ` : ""}${match.minute}'`
+              : match.period ?? "LIVE"}
           </span>
         </div>
         {/* Teams */}
