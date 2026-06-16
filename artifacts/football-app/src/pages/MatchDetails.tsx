@@ -515,6 +515,89 @@ function H2HTab({ data }: { data: MatchDetailsData }) {
   );
 }
 
+// ─── Stats tab ────────────────────────────────────────────────────────────────
+
+function StatBar({ home, away }: { home: number; away: number }) {
+  const total = home + away;
+  const homePct = total === 0 ? 50 : Math.round((home / total) * 100);
+  const awayPct = 100 - homePct;
+  return (
+    <div className="flex gap-1 h-1.5 rounded-full overflow-hidden w-full">
+      <div className="rounded-l-full bg-primary transition-all" style={{ width: `${homePct}%` }} />
+      <div className="rounded-r-full bg-muted-foreground/30 transition-all" style={{ width: `${awayPct}%` }} />
+    </div>
+  );
+}
+
+function StatsTab({ data }: { data: MatchDetailsData }) {
+  const { stats, match } = data;
+
+  if (!stats || stats.length === 0) {
+    return (
+      <div className="bg-card border border-border rounded-xl p-12 text-center space-y-2">
+        <p className="text-3xl">📊</p>
+        <p className="font-semibold">Stats Not Available</p>
+        <p className="text-sm text-muted-foreground">
+          Match statistics are only available for Europa League, Saudi Pro League and MLS matches after the final whistle.
+        </p>
+      </div>
+    );
+  }
+
+  const parseStat = (v: number | string): number => {
+    if (typeof v === "number") return v;
+    const n = parseFloat(String(v).replace("%", ""));
+    return isNaN(n) ? 0 : n;
+  };
+
+  const isPct = (label: string) =>
+    label === "Possession" || label === "Pass Accuracy";
+
+  const fmtVal = (v: number | string) => String(v);
+
+  return (
+    <div className="bg-card border border-border rounded-xl overflow-hidden divide-y divide-border">
+      <div className="flex items-center px-4 py-3">
+        <div className="flex items-center gap-2 flex-1">
+          <img src={match.homeTeam.crest} alt="" className="w-5 h-5 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
+          <span className="font-semibold text-sm truncate">{match.homeTeam.shortName}</span>
+        </div>
+        <span className="text-xs text-muted-foreground font-medium px-2">Stats</span>
+        <div className="flex items-center gap-2 flex-1 justify-end">
+          <span className="font-semibold text-sm truncate">{match.awayTeam.shortName}</span>
+          <img src={match.awayTeam.crest} alt="" className="w-5 h-5 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
+        </div>
+      </div>
+
+      {stats.map((row) => {
+        const h = parseStat(row.home);
+        const a = parseStat(row.away);
+        return (
+          <div key={row.label} className="px-4 py-3 space-y-1.5">
+            <div className="flex items-center">
+              <span className={`text-sm font-bold w-14 ${h > a ? "text-primary" : "text-foreground"}`}>
+                {fmtVal(row.home)}
+              </span>
+              <span className="flex-1 text-center text-xs text-muted-foreground">{row.label}</span>
+              <span className={`text-sm font-bold w-14 text-right ${a > h ? "text-primary" : "text-foreground"}`}>
+                {fmtVal(row.away)}
+              </span>
+            </div>
+            {isPct(row.label) ? (
+              <div className="flex gap-1 h-1.5 rounded-full overflow-hidden">
+                <div className="rounded-l-full bg-primary" style={{ width: `${h}%` }} />
+                <div className="rounded-r-full bg-muted-foreground/30" style={{ width: `${100 - h}%` }} />
+              </div>
+            ) : (
+              <StatBar home={h} away={a} />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── Standings tab ────────────────────────────────────────────────────────────
 
 function StandingsTable({ rows, highlighted }: { rows: LiveStanding[]; highlighted: Set<number> }) {
@@ -853,7 +936,7 @@ export default function MatchDetails() {
       {/* Tab panels */}
       {tab === "overview"   && <OverviewTab data={data} />}
       {tab === "lineups"    && <LineupsTab data={data} />}
-      {tab === "stats"      && <UnavailableTab icon="📊" label="Match Stats Not Available" detail="Live match statistics are not available on the free API tier." />}
+      {tab === "stats"      && <StatsTab data={data} />}
       {tab === "h2h"        && <H2HTab data={data} />}
       {tab === "standings"  && <StandingsTab data={data} />}
     </div>

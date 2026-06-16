@@ -24,4 +24,6 @@ export {
 export {
   getMatchLineup as afGetMatchLineup,
   getH2H as afGetH2H,
+  getMatchStats as afGetMatchStats,
+  type MatchStatRow,
 } from "./providers/apiFootballProvider";

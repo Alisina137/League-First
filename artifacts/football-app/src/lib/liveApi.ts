@@ -133,6 +133,12 @@ export interface LiveHomepage {
   competitions: Competition[];
 }
 
+export interface MatchStatRow {
+  label: string;
+  home: number | string;
+  away: number | string;
+}
+
 export interface MatchDetailsData {
   match: LiveMatch & {
     competition: { code: string; name: string; emblem: string; country: string };
@@ -140,6 +146,7 @@ export interface MatchDetailsData {
   standings: LiveStanding[];
   h2h: LiveMatch[];
   lineups: { homeTeam: TeamLineup; awayTeam: TeamLineup } | null;
+  stats: MatchStatRow[] | null;
   homeStanding: LiveStanding | null;
   awayStanding: LiveStanding | null;
   topScorers: LiveScorer[];

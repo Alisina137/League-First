@@ -335,6 +335,48 @@ export async function getH2H(homeId: number, awayId: number): Promise<LiveMatch[
   });
 }
 
+export interface MatchStatRow { label: string; home: number | string; away: number | string; }
+
+export async function getMatchStats(fixtureId: number): Promise<MatchStatRow[] | null> {
+  return cached(`af:stats:${fixtureId}`, 10 * 60_000, async () => {
+    const raw = await afFetch(`/fixtures/statistics?fixture=${fixtureId}`) as {
+      response: Array<{
+        team: { id: number; name: string };
+        statistics: Array<{ type: string; value: number | string | null }>;
+      }>;
+    };
+    if (!raw.response || raw.response.length < 2) return null;
+
+    const WANTED: Array<[string, string]> = [
+      ["Shots on Goal",    "Shots on Target"],
+      ["Total Shots",      "Total Shots"],
+      ["Ball Possession",  "Possession"],
+      ["Total passes",     "Passes"],
+      ["Passes %",         "Pass Accuracy"],
+      ["Fouls",            "Fouls"],
+      ["Corner Kicks",     "Corners"],
+      ["Offsides",         "Offsides"],
+      ["Yellow Cards",     "Yellow Cards"],
+      ["Red Cards",        "Red Cards"],
+      ["Goalkeeper Saves", "Saves"],
+    ];
+
+    const toMap = (stats: Array<{ type: string; value: number | string | null }>) =>
+      new Map(stats.map(s => [s.type, s.value ?? 0]));
+
+    const homeMap = toMap(raw.response[0].statistics);
+    const awayMap = toMap(raw.response[1].statistics);
+
+    const rows: MatchStatRow[] = [];
+    for (const [key, label] of WANTED) {
+      const h = homeMap.get(key) ?? 0;
+      const a = awayMap.get(key) ?? 0;
+      rows.push({ label, home: h, away: a });
+    }
+    return rows.length > 0 ? rows : null;
+  });
+}
+
 export function invalidateCache(pattern?: string): void {
   if (!pattern) { cache.clear(); errorCache.clear(); return; }
   for (const key of cache.keys()) {

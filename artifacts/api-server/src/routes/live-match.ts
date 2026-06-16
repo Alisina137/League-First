@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { getMatches, getStandings, getScorers, COMPETITIONS, fdGetMatchLineup, fdGetH2H, afGetMatchLineup, afGetH2H } from "../services/footballDataService";
+import { getMatches, getStandings, getScorers, COMPETITIONS, fdGetMatchLineup, fdGetH2H, afGetMatchLineup, afGetH2H, afGetMatchStats } from "../services/footballDataService";
 import type { LiveMatch } from "../services/footballDataService";
 
 const AF_PRIMARY_SLUGS = new Set(["europa-league", "saudi-pro-league", "mls"]);
@@ -44,14 +44,16 @@ router.get("/live/match/:matchId", async (req, res): Promise<void> => {
     const homeId = foundMatch.homeTeam.id;
     const awayId = foundMatch.awayTeam.id;
 
-    // Fetch H2H and lineups in parallel using dedicated API endpoints
-    const [h2hResult, lineupResult] = await Promise.allSettled([
+    // Fetch H2H, lineups and stats in parallel
+    const [h2hResult, lineupResult, statsResult] = await Promise.allSettled([
       isAfPrimary ? afGetH2H(homeId, awayId) : fdGetH2H(matchId),
       isAfPrimary ? afGetMatchLineup(matchId) : fdGetMatchLineup(matchId),
+      isAfPrimary && foundMatch.status === "finished" ? afGetMatchStats(matchId) : Promise.resolve(null),
     ]);
 
     const h2h = h2hResult.status === "fulfilled" ? h2hResult.value : [];
     const lineups = lineupResult.status === "fulfilled" ? lineupResult.value : null;
+    const stats = statsResult.status === "fulfilled" ? statsResult.value : null;
 
     const homeStanding = standings.find((s) => s.team.id === homeId) ?? null;
     const awayStanding = standings.find((s) => s.team.id === awayId) ?? null;
@@ -82,6 +84,7 @@ router.get("/live/match/:matchId", async (req, res): Promise<void> => {
       standings,
       h2h,
       lineups,
+      stats,
       homeStanding,
       awayStanding,
       topScorers,
