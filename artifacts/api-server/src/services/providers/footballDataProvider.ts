@@ -216,8 +216,11 @@ export async function getAllLiveMatches(): Promise<LiveMatch[]> {
 }
 
 export async function getAllUpcomingMatches(): Promise<LiveMatch[]> {
-  return cached("fd:upcoming:all", TTL.MATCHES, async () => {
-    const data = await fdFetch("/matches?status=SCHEDULED") as {
+  const today = new Date().toISOString().slice(0, 10);
+  const dateTo = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const cacheKey = `fd:upcoming:${today}`;
+  return cached(cacheKey, TTL.MATCHES, async () => {
+    const data = await fdFetch(`/matches?dateFrom=${today}&dateTo=${dateTo}`) as {
       matches: Array<{
         id: number;
         competition: { id: number; code: string; name: string; emblem: string | null };
@@ -229,8 +232,10 @@ export async function getAllUpcomingMatches(): Promise<LiveMatch[]> {
       }>;
     };
     const knownCodes = new Set(Object.values(FD_COMPETITIONS).map(c => c.code));
+    const SCHEDULED_STATUSES = new Set(["SCHEDULED", "TIMED"]);
     return (data.matches ?? [])
-      .filter(m => knownCodes.has(m.competition.code))
+      .filter(m => knownCodes.has(m.competition.code) && SCHEDULED_STATUSES.has(m.status))
+      .sort((a, b) => new Date(a.utcDate).getTime() - new Date(b.utcDate).getTime())
       .slice(0, 50)
       .map(m => {
         const slug = slugFromCode(m.competition.code);
