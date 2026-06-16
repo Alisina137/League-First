@@ -74,9 +74,9 @@ export const AF_COMPETITIONS: Record<string, {
   leagueId: number; season: number;
   name: string; country: string; code: string; emblem: string;
 }> = {
-  "europa-league":    { leagueId: 3,   season: 2024, name: "UEFA Europa League", country: "Europe",       code: "EL",  emblem: "https://crests.football-data.org/EL.png" },
-  "saudi-pro-league": { leagueId: 307, season: 2024, name: "Saudi Pro League",   country: "Saudi Arabia", code: "SPL", emblem: "https://media.api-sports.io/football/leagues/307.png" },
-  "mls":              { leagueId: 253, season: 2024, name: "MLS",                country: "USA",          code: "MLS", emblem: "https://media.api-sports.io/football/leagues/253.png" },
+  "europa-league":    { leagueId: 3,   season: 2025, name: "UEFA Europa League", country: "Europe",       code: "EL",  emblem: "https://crests.football-data.org/EL.png" },
+  "saudi-pro-league": { leagueId: 307, season: 2025, name: "Saudi Pro League",   country: "Saudi Arabia", code: "SPL", emblem: "https://media.api-sports.io/football/leagues/307.png" },
+  "mls":              { leagueId: 253, season: 2026, name: "MLS",                country: "USA",          code: "MLS", emblem: "https://media.api-sports.io/football/leagues/253.png" },
 };
 
 function normalizeStatus(short: string): "live" | "upcoming" | "finished" {
