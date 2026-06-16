@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { getMatches, getAllLiveMatches, getAllUpcomingMatches, COMPETITIONS } from "../services/footballDataService";
+import { getMatches, getAllLiveMatches, getAllUpcomingMatches, getAllFinishedMatches, COMPETITIONS } from "../services/footballDataService";
 
 const router: IRouter = Router();
 
@@ -14,6 +14,9 @@ router.get("/live/matches", async (req, res): Promise<void> => {
         res.json(matches);
       } else if (status === "upcoming") {
         const matches = await getAllUpcomingMatches();
+        res.json(matches);
+      } else if (status === "finished") {
+        const matches = await getAllFinishedMatches();
         res.json(matches);
       } else {
         const [live, upcoming] = await Promise.all([getAllLiveMatches(), getAllUpcomingMatches()]);
