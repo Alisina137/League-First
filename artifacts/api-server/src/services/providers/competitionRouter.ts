@@ -107,26 +107,26 @@ function resolveProviderFns<T>(
   return { primaryFn, fallbackFn };
 }
 
-export async function getStandings(slug: string): Promise<LiveStanding[]> {
+export async function getStandings(slug: string, season?: number): Promise<LiveStanding[]> {
   if (!ROUTING[slug]) return [];
   const { primaryFn, fallbackFn } = resolveProviderFns<LiveStanding[]>(
-    slug, fd.getStandings, af.getStandings,
+    slug, fd.getStandings, af.getStandings, season !== undefined ? [season] : [],
   );
   return route(slug, "standings", primaryFn, fallbackFn);
 }
 
-export async function getMatches(slug: string, status?: string): Promise<LiveMatch[]> {
+export async function getMatches(slug: string, status?: string, season?: number): Promise<LiveMatch[]> {
   if (!ROUTING[slug]) return [];
   const { primaryFn, fallbackFn } = resolveProviderFns<LiveMatch[]>(
-    slug, fd.getMatches, af.getMatches, status ? [status] : [],
+    slug, fd.getMatches, af.getMatches, [status, season],
   );
   return route(slug, `matches(${status ?? "all"})`, primaryFn, fallbackFn);
 }
 
-export async function getScorers(slug: string): Promise<LiveScorer[]> {
+export async function getScorers(slug: string, season?: number): Promise<LiveScorer[]> {
   if (!ROUTING[slug]) return [];
   const { primaryFn, fallbackFn } = resolveProviderFns<LiveScorer[]>(
-    slug, fd.getScorers, af.getScorers,
+    slug, fd.getScorers, af.getScorers, season !== undefined ? [season] : [],
   );
   return route(slug, "scorers", primaryFn, fallbackFn);
 }

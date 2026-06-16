@@ -107,11 +107,12 @@ function livePeriod(rawStatus: string, minute: number | null): string | null {
   return null;
 }
 
-export async function getStandings(slug: string): Promise<LiveStanding[]> {
+export async function getStandings(slug: string, season?: number): Promise<LiveStanding[]> {
   const comp = FD_COMPETITIONS[slug];
   if (!comp) throw new Error(`No football-data.org config for ${slug}`);
-  return cached(`fd:standings:${slug}`, TTL.STANDINGS, async () => {
-    const data = await fdFetch(`/competitions/${comp.code}/standings`) as {
+  return cached(`fd:standings:${slug}:${season ?? "cur"}`, TTL.STANDINGS, async () => {
+    const seasonQs = season ? `?season=${season}` : "";
+    const data = await fdFetch(`/competitions/${comp.code}/standings${seasonQs}`) as {
       standings: Array<{
         type: string; group?: string | null;
         table: Array<{
@@ -152,13 +153,16 @@ export async function getStandings(slug: string): Promise<LiveStanding[]> {
   });
 }
 
-export async function getMatches(slug: string, status?: string): Promise<LiveMatch[]> {
+export async function getMatches(slug: string, status?: string, season?: number): Promise<LiveMatch[]> {
   const comp = FD_COMPETITIONS[slug];
   if (!comp) throw new Error(`No football-data.org config for ${slug}`);
-  const cacheKey = `fd:matches:${slug}:${status ?? "all"}`;
+  const cacheKey = `fd:matches:${slug}:${status ?? "all"}:${season ?? "cur"}`;
   const ttl = status === "LIVE" || status === "IN_PLAY" ? TTL.LIVE : TTL.MATCHES;
   return cached(cacheKey, ttl, async () => {
-    const qs = status ? `?status=${status}` : "";
+    const params = new URLSearchParams();
+    if (status) params.set("status", status);
+    if (season) params.set("season", String(season));
+    const qs = params.toString() ? `?${params}` : "";
     const data = await fdFetch(`/competitions/${comp.code}/matches${qs}`) as {
       matches: Array<{
         id: number; utcDate: string; status: string;
@@ -292,11 +296,12 @@ export async function getAllFinishedMatches(): Promise<LiveMatch[]> {
   });
 }
 
-export async function getScorers(slug: string): Promise<LiveScorer[]> {
+export async function getScorers(slug: string, season?: number): Promise<LiveScorer[]> {
   const comp = FD_COMPETITIONS[slug];
   if (!comp) throw new Error(`No football-data.org config for ${slug}`);
-  return cached(`fd:scorers:${slug}`, TTL.SCORERS, async () => {
-    const data = await fdFetch(`/competitions/${comp.code}/scorers?limit=20`) as {
+  return cached(`fd:scorers:${slug}:${season ?? "cur"}`, TTL.SCORERS, async () => {
+    const seasonParam = season ? `&season=${season}` : "";
+    const data = await fdFetch(`/competitions/${comp.code}/scorers?limit=20${seasonParam}`) as {
       scorers: Array<{
         player: { id: number; name: string; nationality: string; dateOfBirth: string; position: string | null };
         team: { id: number; name: string; shortName: string; crest: string };

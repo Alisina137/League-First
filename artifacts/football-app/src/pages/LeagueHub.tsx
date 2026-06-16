@@ -31,6 +31,24 @@ type Tab = "overview" | "groups" | "knockout" | "matches" | "teams";
 const TOURNAMENT_SLUGS = new Set(["champions-league", "europa-league", "world-cup"]);
 const UNSUPPORTED_SLUGS = new Set<string>([]);
 
+const AF_SLUGS = new Set(["europa-league", "saudi-pro-league", "mls"]);
+const SINGLE_YEAR_SLUGS = new Set(["world-cup", "mls"]);
+
+function getSeasonOptions(slug: string): number[] {
+  if (slug === "world-cup") return [2022, 2018, 2014];
+  if (AF_SLUGS.has(slug)) return [2024, 2023, 2022];
+  return [2024, 2023, 2022, 2021, 2020, 2019];
+}
+
+function getDefaultSeason(_slug: string): number {
+  return 2024;
+}
+
+function formatSeason(season: number, slug: string): string {
+  if (SINGLE_YEAR_SLUGS.has(slug)) return String(season);
+  return `${season}/${String(season + 1).slice(2)}`;
+}
+
 const TAB_CONFIG: { id: Tab; label: string }[] = [
   { id: "overview",  label: "Overview"    },
   { id: "groups",    label: "Group Stage" },
@@ -279,10 +297,10 @@ function FinalConnector({ totalH, side }: { totalH: number; side: "left" | "righ
   );
 }
 
-function KnockoutView({ slug }: { slug: string }) {
+function KnockoutView({ slug, season }: { slug: string; season: number }) {
   const { data, isLoading, isError, refetch } = useQuery<KnockoutData>({
-    queryKey: ["live-knockout", slug],
-    queryFn: () => apiFetch(`/api/live/knockout?leagueSlug=${slug}`),
+    queryKey: ["live-knockout", slug, season],
+    queryFn: () => apiFetch(`/api/live/knockout?leagueSlug=${slug}&season=${season}`),
     staleTime: 60_000,
     refetchInterval: 60_000,
     retry: 2,
@@ -649,14 +667,20 @@ export default function LeagueHub() {
   const { slug } = useParams<{ slug: string }>();
   const safeSlug = slug ?? "";
   const [activeTab, setActiveTab] = useState<Tab>("overview");
+  const [selectedSeason, setSelectedSeason] = useState<number>(() => getDefaultSeason(safeSlug));
 
   const competition = COMPETITIONS.find(c => c.slug === safeSlug);
   const isTournament = TOURNAMENT_SLUGS.has(safeSlug);
   const isUnsupported = UNSUPPORTED_SLUGS.has(safeSlug);
 
+  function handleSeasonChange(year: number) {
+    setSelectedSeason(year);
+    setActiveTab("overview");
+  }
+
   const { data, isLoading, isError, error, refetch } = useQuery<LeagueHubData>({
-    queryKey: ["live-league-hub", safeSlug],
-    queryFn: () => apiFetch(`/api/live/league-hub?leagueSlug=${safeSlug}`),
+    queryKey: ["live-league-hub", safeSlug, selectedSeason],
+    queryFn: () => apiFetch(`/api/live/league-hub?leagueSlug=${safeSlug}&season=${selectedSeason}`),
     enabled: !!safeSlug && !isUnsupported,
     staleTime: 5 * 60_000,
     refetchInterval: 5 * 60_000,
@@ -737,18 +761,33 @@ export default function LeagueHub() {
   return (
     <div className="space-y-6 pb-10">
       {/* Hero */}
-      <div className="flex items-center gap-5">
-        <div className="w-20 h-20 rounded-2xl bg-card border border-border flex items-center justify-center p-3 shadow-md flex-shrink-0">
-          <img src={data.competition.emblem} alt={data.competition.name} className="w-full h-full object-contain" data-no-transition onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
+      <div className="flex items-center gap-5 justify-between flex-wrap">
+        <div className="flex items-center gap-5">
+          <div className="w-20 h-20 rounded-2xl bg-card border border-border flex items-center justify-center p-3 shadow-md flex-shrink-0">
+            <img src={data.competition.emblem} alt={data.competition.name} className="w-full h-full object-contain" data-no-transition onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
+          </div>
+          <div>
+            <p className="text-xs font-bold text-primary uppercase tracking-widest mb-0.5">{data.competition.country}</p>
+            <h1 className="text-3xl md:text-4xl font-black">{data.competition.name}</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              {standings.length > 0 ? `${standings.length} teams` : ""}
+              {liveMatches.length > 0 && <span className="text-primary font-semibold"> · {liveMatches.length} live now</span>}
+              {isTournament && <span className="ml-1 text-xs font-semibold bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">Tournament</span>}
+            </p>
+          </div>
         </div>
-        <div>
-          <p className="text-xs font-bold text-primary uppercase tracking-widest mb-0.5">{data.competition.country}</p>
-          <h1 className="text-3xl md:text-4xl font-black">{data.competition.name}</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {standings.length > 0 ? `${standings.length} teams` : ""}
-            {liveMatches.length > 0 && <span className="text-primary font-semibold"> · {liveMatches.length} live now</span>}
-            {isTournament && <span className="ml-1 text-xs font-semibold bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">Tournament</span>}
-          </p>
+        <div className="flex-shrink-0">
+          <label className="text-xs text-muted-foreground font-medium block mb-1">Season</label>
+          <select
+            value={selectedSeason}
+            onChange={(e) => handleSeasonChange(Number(e.target.value))}
+            className="bg-card border border-border rounded-lg px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer appearance-none pr-8"
+            style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 0.6rem center" }}
+          >
+            {getSeasonOptions(safeSlug).map(year => (
+              <option key={year} value={year}>{formatSeason(year, safeSlug)}</option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -777,7 +816,7 @@ export default function LeagueHub() {
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold flex items-center gap-2"><Zap className="w-5 h-5 text-primary" />Knockout Stage</h2>
           </div>
-          <KnockoutView slug={safeSlug} />
+          <KnockoutView slug={safeSlug} season={selectedSeason} />
         </div>
       )}
 

@@ -280,6 +280,8 @@ function orderBracketProgression(rounds: KnockoutRound[]): void {
 
 router.get("/live/knockout", async (req, res): Promise<void> => {
   const slug = typeof req.query.leagueSlug === "string" ? req.query.leagueSlug : "";
+  const seasonRaw = typeof req.query.season === "string" ? parseInt(req.query.season, 10) : NaN;
+  const season = !isNaN(seasonRaw) ? seasonRaw : undefined;
 
   if (!slug || !COMPETITIONS[slug]) {
     res.status(400).json({ error: "Valid leagueSlug required", available: Object.keys(COMPETITIONS) });
@@ -296,7 +298,7 @@ router.get("/live/knockout", async (req, res): Promise<void> => {
   const comp = COMPETITIONS[slug];
 
   try {
-    const allMatches = await getMatches(slug);
+    const allMatches = await getMatches(slug, undefined, season);
     const allStagesFound = [...new Set(allMatches.map(m => m.stage).filter(Boolean) as string[])];
 
     const knockoutMatches = allMatches.filter(m => m.stage && !GROUP_STAGES.has(m.stage));

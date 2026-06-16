@@ -10,6 +10,8 @@ const router: IRouter = Router();
 
 router.get("/live/league-hub", async (req, res): Promise<void> => {
   const slug = typeof req.query.leagueSlug === "string" ? req.query.leagueSlug : "";
+  const seasonRaw = typeof req.query.season === "string" ? parseInt(req.query.season, 10) : NaN;
+  const season = !isNaN(seasonRaw) ? seasonRaw : undefined;
 
   if (!slug) {
     res.status(400).json({ error: "leagueSlug is required" });
@@ -27,9 +29,9 @@ router.get("/live/league-hub", async (req, res): Promise<void> => {
 
   try {
     const [standings, allMatches, scorers] = await Promise.allSettled([
-      getStandings(slug),
-      getMatches(slug),
-      getScorers(slug),
+      getStandings(slug, season),
+      getMatches(slug, undefined, season),
+      getScorers(slug, season),
     ]);
 
     const standingsData = standings.status === "fulfilled" ? standings.value : [];

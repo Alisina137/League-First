@@ -122,17 +122,18 @@ function teamShortName(name: string, code?: string | null): string {
 }
 
 
-export async function getStandings(slug: string): Promise<LiveStanding[]> {
+export async function getStandings(slug: string, season?: number): Promise<LiveStanding[]> {
   const comp = AF_COMPETITIONS[slug];
   if (!comp) throw new Error(`No API-Football config for ${slug}`);
-  return cached(`af:standings:${slug}`, TTL.STANDINGS, async () => {
+  const activeSeason = season ?? comp.season;
+  return cached(`af:standings:${slug}:${activeSeason}`, TTL.STANDINGS, async () => {
     type AFStandingRow = {
       rank: number;
       team: { id: number; name: string; logo: string };
       points: number; goalsDiff: number; group: string; form: string;
       all: { played: number; win: number; draw: number; lose: number; goals: { for: number; against: number } };
     };
-    const raw = await afFetch(`/standings?league=${comp.leagueId}&season=${comp.season}`) as {
+    const raw = await afFetch(`/standings?league=${comp.leagueId}&season=${activeSeason}`) as {
       response: Array<{ league: { standings: AFStandingRow[][] } }>;
     };
     const groups = raw.response[0]?.league?.standings ?? [];
@@ -161,11 +162,12 @@ export async function getStandings(slug: string): Promise<LiveStanding[]> {
   });
 }
 
-export async function getMatches(slug: string, status?: string): Promise<LiveMatch[]> {
+export async function getMatches(slug: string, status?: string, season?: number): Promise<LiveMatch[]> {
   const comp = AF_COMPETITIONS[slug];
   if (!comp) throw new Error(`No API-Football config for ${slug}`);
-  return cached(`af:matches:${slug}:all`, TTL.MATCHES, async () => {
-    const raw = await afFetch(`/fixtures?league=${comp.leagueId}&season=${comp.season}`) as {
+  const activeSeason = season ?? comp.season;
+  return cached(`af:matches:${slug}:all:${activeSeason}`, TTL.MATCHES, async () => {
+    const raw = await afFetch(`/fixtures?league=${comp.leagueId}&season=${activeSeason}`) as {
       response: Array<{
         fixture: {
           id: number; date: string; venue: { name: string; city: string } | null;
@@ -214,11 +216,12 @@ export async function getMatches(slug: string, status?: string): Promise<LiveMat
   });
 }
 
-export async function getScorers(slug: string): Promise<LiveScorer[]> {
+export async function getScorers(slug: string, season?: number): Promise<LiveScorer[]> {
   const comp = AF_COMPETITIONS[slug];
   if (!comp) throw new Error(`No API-Football config for ${slug}`);
-  return cached(`af:scorers:${slug}`, TTL.SCORERS, async () => {
-    const raw = await afFetch(`/players/topscorers?league=${comp.leagueId}&season=${comp.season}`) as {
+  const activeSeason = season ?? comp.season;
+  return cached(`af:scorers:${slug}:${activeSeason}`, TTL.SCORERS, async () => {
+    const raw = await afFetch(`/players/topscorers?league=${comp.leagueId}&season=${activeSeason}`) as {
       response: Array<{
         player: {
           id: number; name: string; nationality: string;
